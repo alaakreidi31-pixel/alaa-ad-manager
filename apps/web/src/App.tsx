@@ -1,14 +1,21 @@
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { Logo } from './components/Logo';
 import { SystemStatus } from './components/SystemStatus';
 
 // Layout uses logical spacing (ps/pe/ms/me, text-start) instead of left/right,
-// so the whole page flips correctly when Arabic (RTL) is added in step 0.6.
+// so the whole page flips correctly between English (LTR) and Arabic (RTL).
 export function App() {
+  const { t } = useTranslation();
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-ink-700 bg-ink-900/80">
-        <div className="mx-auto flex max-w-6xl items-center px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4 sm:px-6">
           <Logo />
+          <div className="ms-auto">
+            <LanguageSwitcher />
+          </div>
         </div>
       </header>
 
@@ -17,7 +24,7 @@ export function App() {
       </main>
 
       <footer className="border-t border-ink-700 px-4 py-4 text-center text-xs text-ink-400">
-        © {new Date().getFullYear()} ALAA MARKETING GROUP
+        {t('footer.rights', { year: new Date().getFullYear() })}
       </footer>
     </div>
   );

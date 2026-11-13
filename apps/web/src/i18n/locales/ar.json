@@ -1,0 +1,24 @@
+{
+  "language": {
+    "switchLabel": "التبديل إلى الإنجليزية"
+  },
+  "status": {
+    "phase": "المرحلة 0",
+    "title": "حالة النظام",
+    "subtitle": "فحص مباشر لاتصال خدمات المنصة.",
+    "api": "الخادم (API)",
+    "database": "قاعدة البيانات",
+    "checking": "جارٍ الفحص…",
+    "connected": "متصل",
+    "unreachable": "غير متاح",
+    "up": "تعمل",
+    "down": "متوقفة",
+    "unknown": "غير معروفة",
+    "checkAgain": "إعادة الفحص",
+    "notResponding": "الخادم لا يستجيب. يمكن تشغيله بالأمر:",
+    "unexpected": "استجابة غير متوقعة من الخادم (HTTP {{status}})."
+  },
+  "footer": {
+    "rights": "© {{year}} ALAA MARKETING GROUP. جميع الحقوق محفوظة."
+  }
+}

@@ -36,3 +36,8 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
+
+/* Arabic: the Arabic font first, so Latin text inside Arabic pages matches its weight. */
+html[lang="ar"] body {
+  font-family: "IBM Plex Sans Arabic", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}

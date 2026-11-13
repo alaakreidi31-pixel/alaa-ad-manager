@@ -1,0 +1,24 @@
+{
+  "language": {
+    "switchLabel": "Switch to Arabic"
+  },
+  "status": {
+    "phase": "PHASE 0",
+    "title": "System Status",
+    "subtitle": "Live connection check of the platform services.",
+    "api": "API",
+    "database": "Database",
+    "checking": "Checking…",
+    "connected": "Connected",
+    "unreachable": "Unreachable",
+    "up": "Up",
+    "down": "Down",
+    "unknown": "Unknown",
+    "checkAgain": "Check again",
+    "notResponding": "The API server is not responding. Start it with:",
+    "unexpected": "Unexpected response from the API server (HTTP {{status}})."
+  },
+  "footer": {
+    "rights": "© {{year}} ALAA MARKETING GROUP. All rights reserved."
+  }
+}
