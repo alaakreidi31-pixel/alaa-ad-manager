@@ -4,8 +4,23 @@
   "private": true,
   "description": "ALAA AD MANAGER - internal platform of ALAA MARKETING GROUP",
   "scripts": {
+    "dev": "pnpm --filter @alaa/api --filter @alaa/web --parallel dev",
     "dev:api": "pnpm --filter @alaa/api dev",
-    "dev:web": "pnpm --filter @alaa/web dev"
+    "dev:web": "pnpm --filter @alaa/web dev",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0"
   },
   "engines": {
     "node": ">=22",

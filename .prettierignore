@@ -1,0 +1,5 @@
+# Generated or managed by tools - never formatted by hand
+pnpm-lock.yaml
+**/src/generated/
+**/dist/
+**/coverage/
