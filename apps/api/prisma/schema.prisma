@@ -1,0 +1,12 @@
+// ALAA AD MANAGER - database schema
+// No tables yet: the first models (users, roles) arrive in Phase 1.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
