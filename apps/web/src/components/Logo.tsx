@@ -3,7 +3,13 @@ export function Logo() {
   return (
     <div className="flex items-center gap-3">
       <svg viewBox="0 0 32 32" className="h-9 w-9 shrink-0" aria-hidden="true">
-        <path d="M16 2 30 16 16 30 2 16Z" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold-500" />
+        <path
+          d="M16 2 30 16 16 30 2 16Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="text-gold-500"
+        />
         <path d="M16 8 24 16 16 24 8 16Z" className="fill-gold-400" />
       </svg>
       <div className="leading-tight">

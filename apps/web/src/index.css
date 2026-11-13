@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /*
  * ALAA MARKETING GROUP - brand tokens.
@@ -21,7 +21,7 @@
   --color-success: #4ade80;
   --color-danger: #f87171;
 
-  --font-sans: "Inter Variable", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
@@ -38,6 +38,6 @@ body {
 }
 
 /* Arabic: the Arabic font first, so Latin text inside Arabic pages matches its weight. */
-html[lang="ar"] body {
-  font-family: "IBM Plex Sans Arabic", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+html[lang='ar'] body {
+  font-family: 'IBM Plex Sans Arabic', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 }

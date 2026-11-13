@@ -34,7 +34,8 @@ function saveLanguage(language: Language): void {
 function detectLanguage(): Language {
   const saved = readSavedLanguage();
   if (saved) return saved;
-  const browserLanguages = navigator.languages.length > 0 ? navigator.languages : [navigator.language];
+  const browserLanguages =
+    navigator.languages.length > 0 ? navigator.languages : [navigator.language];
   return browserLanguages.some((lang) => lang.toLowerCase().startsWith('ar')) ? 'ar' : 'en';
 }
 

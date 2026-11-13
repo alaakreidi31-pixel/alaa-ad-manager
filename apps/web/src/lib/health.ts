@@ -10,12 +10,10 @@ export interface HealthResponse {
 
 // Reasons are codes, not sentences: the UI translates them (Arabic / English).
 export type UnreachableReason =
-  | { code: 'not_responding' }
-  | { code: 'unexpected_response'; httpStatus: number };
+  { code: 'not_responding' } | { code: 'unexpected_response'; httpStatus: number };
 
 export type HealthResult =
-  | { kind: 'reachable'; data: HealthResponse }
-  | { kind: 'unreachable'; reason: UnreachableReason };
+  { kind: 'reachable'; data: HealthResponse } | { kind: 'unreachable'; reason: UnreachableReason };
 
 function isHealthResponse(value: unknown): value is HealthResponse {
   if (typeof value !== 'object' || value === null) return false;
@@ -31,7 +29,10 @@ function isHealthResponse(value: unknown): value is HealthResponse {
 // The dev proxy answers 500 (no health body) when the API is stopped.
 export async function fetchHealth(signal?: AbortSignal): Promise<HealthResult> {
   try {
-    const response = await fetch('/api/health', { signal, headers: { Accept: 'application/json' } });
+    const response = await fetch('/api/health', {
+      signal,
+      headers: { Accept: 'application/json' },
+    });
     const body: unknown = await response.json().catch(() => null);
     if (isHealthResponse(body)) {
       return { kind: 'reachable', data: body };
@@ -39,7 +40,10 @@ export async function fetchHealth(signal?: AbortSignal): Promise<HealthResult> {
     if (response.status === 500 || response.status === 502 || response.status === 504) {
       return { kind: 'unreachable', reason: { code: 'not_responding' } };
     }
-    return { kind: 'unreachable', reason: { code: 'unexpected_response', httpStatus: response.status } };
+    return {
+      kind: 'unreachable',
+      reason: { code: 'unexpected_response', httpStatus: response.status },
+    };
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
     return { kind: 'unreachable', reason: { code: 'not_responding' } };

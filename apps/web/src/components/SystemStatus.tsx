@@ -59,13 +59,19 @@ export function SystemStatus() {
   return (
     <section className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6 shadow-2xl shadow-black/50">
       {/* Letter-spacing only in LTR: spacing would break the joined letters of Arabic. */}
-      <p className="text-xs font-semibold text-gold-500 ltr:tracking-[0.3em]">{t('status.phase')}</p>
+      <p className="text-xs font-semibold text-gold-500 ltr:tracking-[0.3em]">
+        {t('status.phase')}
+      </p>
       <h1 className="mt-2 text-2xl font-bold text-white">{t('status.title')}</h1>
       <p className="mt-1 text-sm text-ink-400">{t('status.subtitle')}</p>
 
       <div className="mt-6 space-y-3">
         <StatusRow label={t('status.api')} tone={loading ? 'unknown' : apiTone} value={apiValue} />
-        <StatusRow label={t('status.database')} tone={loading ? 'unknown' : dbTone} value={dbValue} />
+        <StatusRow
+          label={t('status.database')}
+          tone={loading ? 'unknown' : dbTone}
+          value={dbValue}
+        />
       </div>
 
       {!loading && result?.kind === 'unreachable' && (
@@ -74,7 +80,10 @@ export function SystemStatus() {
             <p>
               {t('status.notResponding')}{' '}
               {/* Commands are always left-to-right, even inside Arabic text */}
-              <code dir="ltr" className="rounded bg-ink-950 px-1.5 py-0.5 font-mono text-xs text-white">
+              <code
+                dir="ltr"
+                className="rounded bg-ink-950 px-1.5 py-0.5 font-mono text-xs text-white"
+              >
                 pnpm dev:api
               </code>
             </p>
