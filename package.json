@@ -4,7 +4,8 @@
   "private": true,
   "description": "ALAA AD MANAGER - internal platform of ALAA MARKETING GROUP",
   "scripts": {
-    "dev:api": "pnpm --filter @alaa/api dev"
+    "dev:api": "pnpm --filter @alaa/api dev",
+    "dev:web": "pnpm --filter @alaa/web dev"
   },
   "engines": {
     "node": ">=22",
