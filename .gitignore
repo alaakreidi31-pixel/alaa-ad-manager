@@ -1,0 +1,24 @@
+# Dependencies (installed by pnpm, never committed)
+node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Environment variables & secrets - NEVER commit
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Editors & OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+Thumbs.db
+.DS_Store
