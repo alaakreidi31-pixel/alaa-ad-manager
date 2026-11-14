@@ -17,3 +17,9 @@ export const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 // Per IP address, for login and refresh: at most this many requests per window.
 export const RATE_LIMIT_MAX_REQUESTS = 10;
 export const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+
+// Two-factor authentication (ADR 0013)
+// After a correct password, the second step must be completed within this time.
+export const LOGIN_CHALLENGE_TTL_SECONDS = 5 * 60;
+// Name shown in the authenticator app.
+export const TOTP_ISSUER = 'ALAA AD MANAGER';

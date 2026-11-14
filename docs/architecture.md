@@ -1,6 +1,6 @@
 # البنية الحالية للنظام
 
-> هذا الملف يصف ما هو **موجود فعلاً** في الكود حتى نهاية الخطوة 1.4. ما لم يُبنَ بعد مذكور صراحةً في القسم الأخير.
+> هذا الملف يصف ما هو **موجود فعلاً** في الكود حتى نهاية الخطوة 1.5. ما لم يُبنَ بعد مذكور صراحةً في القسم الأخير.
 
 ## الصورة العامة
 
@@ -47,16 +47,24 @@
 
 ## تسجيل الدخول (`/api/auth`)
 
-| النقطة                   | الوظيفة                                                                 |
-| ------------------------ | ----------------------------------------------------------------------- |
-| `POST /api/auth/login`   | بريد وكلمة مرور ← Access Token في الرد، وRefresh Token في cookie        |
-| `POST /api/auth/refresh` | يستبدل الـ refresh token بآخر جديد (rotation)، ويعطي Access Token جديداً |
-| `POST /api/auth/logout`  | يلغي الجلسة ويحذف الـ cookie                                            |
-| `GET /api/auth/me`       | بيانات المستخدم الحالي، ويتطلب `Authorization: Bearer`                  |
+| النقطة                      | الوظيفة                                                                 |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `POST /api/auth/login`      | بريد وكلمة مرور ← Access Token في الرد، وRefresh Token في cookie        |
+| `POST /api/auth/refresh`    | يستبدل الـ refresh token بآخر جديد (rotation)، ويعطي Access Token جديداً |
+| `POST /api/auth/logout`     | يلغي الجلسة ويحذف الـ cookie                                            |
+| `GET /api/auth/me`          | بيانات المستخدم الحالي، ويتطلب `Authorization: Bearer`                  |
+| `POST /api/auth/2fa/verify` | الخطوة الثانية: التذكرة المؤقتة مع رمز التطبيق أو رمز احتياطي ← الجلسة  |
 
 التفاصيل والأسباب في [ADR 0011](decisions/0011-sessions-and-tokens.md).
 
 **الحماية من التخمين ([ADR 0012](decisions/0012-brute-force-protection.md)):** 5 كلمات مرور خاطئة متتالية تقفل الحساب 15 دقيقة (العمودان `failed_login_attempts` و`locked_until` في `users`)، و`login` و`refresh` محدودان بـ 10 طلبات في الدقيقة لكل IP. الرد في الحالتين 429.
+
+**التحقق بخطوتين ([ADR 0013](decisions/0013-two-factor-authentication.md)):** إذا كان الحساب يستخدم 2FA، يعيد `login` تذكرة مؤقتة (5 دقائق) بدل الجلسة، وتُفتح الجلسة بعد `2fa/verify`. حساب `SUPER_ADMIN` دون 2FA يُرفض (403). خوارزمية TOTP في `apps/api/src/auth/totp.ts`، والتشفير AES-256-GCM في `secret-box.ts`، والتفعيل بالأمر `pnpm admin:setup-2fa`.
+
+### جدول `recovery_codes` (migration `20261114120000_add_two_factor`)
+
+- 10 رموز احتياطية لكل مستخدم مفعّل 2FA. يُخزَّن **SHA-256 فقط**، و`used_at` يُضبط عند الاستخدام.
+- الـ migration نفسها أضافت إلى `users`: `totp_secret_encrypted` (مشفّر)، و`totp_enabled_at`، و`totp_last_used_step` (يمنع قبول الرمز نفسه مرتين)، وشرط `users_totp_consistent_check`.
 
 ### جدول `users` (migration `20261114093306_create_users`)
 
@@ -107,6 +115,7 @@ alaa-ad-manager/
 | `pnpm lint`                     | فحص الجودة (ESLint)                                                                      |
 | `pnpm test:db`                  | اختبارات على PostgreSQL الحقيقي، قاعدة `_test` فقط                                       |
 | `pnpm admin:create-super-admin` | إنشاء حساب SUPER_ADMIN (أمر إداري، انظر ADR 0010)                                        |
+| `pnpm admin:setup-2fa`          | تفعيل التحقق بخطوتين لحساب (أمر إداري، انظر ADR 0013)                                    |
 | `pnpm test:rollback`            | اختبار التراجع عن الـ migrations، قاعدة `_test` فقط                                      |
 | `pnpm generate`                 | توليد كود Prisma في `apps/api/src/generated`                                             |
 | `pnpm format`                   | تنسيق كل الملفات (Prettier)                                                              |
@@ -119,23 +128,26 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (97 اختباراً)
+## الاختبارات الموجودة (140 اختباراً)
 
-| الملف                                                   | العدد | ماذا يحمي                                                               |
-| ------------------------------------------------------- | ----- | ----------------------------------------------------------------------- |
-| `apps/api/src/config/env.schema.spec.ts`                | 8     | حارس الإعدادات يقبل الصحيح ويرفض الناقص أو الخاطئ                       |
-| `apps/api/src/health/health.controller.spec.ts`         | 2     | `/api/health` يعيد `up`، أو `down` مع 503                               |
-| `apps/api/src/users/email.spec.ts`                      | 4     | توحيد البريد                                                            |
-| `apps/api/src/testing/test-database.spec.ts`            | 5     | حارس قاعدة الاختبار، ولا يُظهر كلمة المرور                               |
-| `apps/api/src/users/users.db-spec.ts`                   | 12    | جدول المستخدمين على PostgreSQL الحقيقي، وأن `alaa_app` لا يغيّر البنية   |
-| `apps/api/src/auth/password.spec.ts`                    | 9     | تشفير argon2id، والتحقق، وسياسة كلمة المرور                             |
-| `apps/api/src/users/create-super-admin.db-spec.ts`      | 8     | إنشاء SUPER_ADMIN: واحد فقط، وتشفير كلمة المرور، ورفض المدخلات الخاطئة  |
-| `apps/api/src/auth/tokens.spec.ts`                      | 9     | توليد الرموز وبصمتها، وقراءة الـ cookie والـ Bearer                     |
-| `apps/api/src/auth/auth.service.db-spec.ts`             | 24    | الدخول، والتجديد، واكتشاف الرمز المسروق، والخروج، والإيقاف، وقفل الحساب |
-| `apps/api/src/auth/rate-limiter.spec.ts`                | 5     | حد الطلبات لكل IP                                                       |
-| `apps/api/src/migrations/create-users.rollback-spec.ts` | 2     | لكل migration ملف تراجع، والتراجع عن الكل ثم إعادة التطبيق              |
-| `apps/web/src/lib/health.test.ts`                       | 6     | الواجهة تتعامل مع كل حالات رد الخادم                                    |
-| `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ               |
+| الملف                                                   | العدد | ماذا يحمي                                                                     |
+| ------------------------------------------------------- | ----- | ----------------------------------------------------------------------------- |
+| `apps/api/src/config/env.schema.spec.ts`                | 10    | حارس الإعدادات يقبل الصحيح ويرفض الناقص أو الخاطئ                             |
+| `apps/api/src/health/health.controller.spec.ts`         | 2     | `/api/health` يعيد `up`، أو `down` مع 503                                     |
+| `apps/api/src/users/email.spec.ts`                      | 4     | توحيد البريد                                                                  |
+| `apps/api/src/testing/test-database.spec.ts`            | 5     | حارس قاعدة الاختبار، ولا يُظهر كلمة المرور                                     |
+| `apps/api/src/users/users.db-spec.ts`                   | 12    | جدول المستخدمين على PostgreSQL الحقيقي، وأن `alaa_app` لا يغيّر البنية         |
+| `apps/api/src/auth/password.spec.ts`                    | 9     | تشفير argon2id، والتحقق، وسياسة كلمة المرور                                   |
+| `apps/api/src/users/create-super-admin.db-spec.ts`      | 8     | إنشاء SUPER_ADMIN: واحد فقط، وتشفير كلمة المرور، ورفض المدخلات الخاطئة        |
+| `apps/api/src/auth/tokens.spec.ts`                      | 9     | توليد الرموز وبصمتها، وقراءة الـ cookie والـ Bearer                           |
+| `apps/api/src/auth/auth.service.db-spec.ts`             | 40    | الدخول، والتجديد، واكتشاف الرمز المسروق، والخروج، والإيقاف، وقفل الحساب، و2FA |
+| `apps/api/src/auth/totp.spec.ts`                        | 15    | خوارزمية TOTP على متجهات RFC 6238 الرسمية، وBase32، ورابط QR                  |
+| `apps/api/src/auth/secret-box.spec.ts`                  | 6     | تشفير AES-256-GCM: رفض القيمة المعدّلة والمفتاح الخاطئ                         |
+| `apps/api/src/auth/recovery-codes.spec.ts`              | 4     | الرموز الاحتياطية: الصيغة، والتخزين كـ hash فقط                               |
+| `apps/api/src/auth/rate-limiter.spec.ts`                | 5     | حد الطلبات لكل IP                                                             |
+| `apps/api/src/migrations/create-users.rollback-spec.ts` | 2     | لكل migration ملف تراجع، والتراجع عن الكل ثم إعادة التطبيق                    |
+| `apps/web/src/lib/health.test.ts`                       | 6     | الواجهة تتعامل مع كل حالات رد الخادم                                          |
+| `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                     |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.
 
@@ -163,7 +175,7 @@ alaa-ad-manager/
 
 ## ما لم يُبنَ بعد
 
-- منع التخمين (1.4)، و2FA (1.5)، وسجل التدقيق (1.6)، وصفحة الدخول في الواجهة (1.7). لا يوجد أي endpoint لتسجيل حساب جديد (ADR 0010).
+- سجل التدقيق (1.6)، وصفحة الدخول في الواجهة (1.7). لا يوجد أي endpoint لتسجيل حساب جديد (ADR 0010).
 - محتوى `packages/shared`: نوع `HealthResponse` معرّف حالياً في الخادم والواجهة كلٍّ على حدة، والخطة نقله إلى الحزمة المشتركة لاحقاً.
 - Docker وأي إعداد للنشر.
 - التكاملات مع Meta وGoogle وWhatsApp (مؤجلة إلى ما بعد النسخة الأساسية بقرار صاحبة المشروع).

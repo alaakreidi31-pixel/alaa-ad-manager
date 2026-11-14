@@ -3,41 +3,14 @@
 // There is no public registration (ADR 0010): this is the only way.
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { stdin, stdout } from 'node:process';
-import { createInterface, type Interface } from 'node:readline/promises';
-import { Writable } from 'node:stream';
+import { stdout } from 'node:process';
 import { env } from '../config/env';
 import { PrismaClient } from '../generated/prisma/client';
 import { createSuperAdmin, SuperAdminError } from '../users/create-super-admin';
-
-// Terminal output that can be muted, so passwords are not echoed while typed.
-let muted = false;
-const output = new Writable({
-  write(chunk: string | Uint8Array, encoding: BufferEncoding, callback: () => void) {
-    if (!muted) stdout.write(chunk, encoding);
-    callback();
-  },
-});
-
-async function ask(rl: Interface, question: string, hidden = false): Promise<string> {
-  muted = false;
-  const answer = rl.question(question); // the question is printed immediately
-  muted = hidden;
-  try {
-    return await answer;
-  } finally {
-    muted = false;
-    if (hidden) stdout.write('\n');
-  }
-}
-
-// Shows which database will be written to, without the password.
-function databaseName(url: string): string {
-  return new URL(url).pathname.replace(/^\//, '');
-}
+import { ask, createPrompt, databaseName } from './prompt';
 
 async function main(): Promise<void> {
-  const rl = createInterface({ input: stdin, output, terminal: true });
+  const rl = createPrompt();
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: env.DATABASE_URL }),
   });
@@ -56,6 +29,7 @@ async function main(): Promise<void> {
 
     const created = await createSuperAdmin(prisma, { email, fullName, password });
     stdout.write(`\nSUPER_ADMIN created: ${created.email}\n`);
+    stdout.write('Next step (required before login): pnpm admin:setup-2fa\n');
   } catch (error) {
     const message =
       error instanceof SuperAdminError

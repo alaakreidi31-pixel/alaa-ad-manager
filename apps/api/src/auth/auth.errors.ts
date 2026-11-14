@@ -29,3 +29,24 @@ export class AccountLockedError extends Error {
     super('Too many attempts. Please try again later.');
   }
 }
+
+// SUPER_ADMIN must enable two-factor authentication before any login (ADR 0013).
+export class TwoFactorSetupRequiredError extends Error {
+  constructor() {
+    super('Two-factor authentication must be enabled for this account first');
+  }
+}
+
+// The temporary login step (after the password) is missing, invalid or expired.
+export class InvalidLoginChallengeError extends Error {
+  constructor() {
+    super('This login step has expired. Please sign in again.');
+  }
+}
+
+// Wrong, reused, or already used authenticator / recovery code.
+export class InvalidTwoFactorCodeError extends Error {
+  constructor() {
+    super('Invalid verification code');
+  }
+}

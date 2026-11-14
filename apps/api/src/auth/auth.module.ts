@@ -6,6 +6,7 @@ import { ACCESS_TOKEN_TTL_SECONDS } from './auth.constants';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthRateLimiter, LoginRateLimitGuard } from './login-rate-limit.guard';
+import { SecretBox } from './secret-box';
 
 @Module({
   imports: [
@@ -17,7 +18,14 @@ import { AuthRateLimiter, LoginRateLimitGuard } from './login-rate-limit.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AccessTokenGuard, AuthRateLimiter, LoginRateLimitGuard],
+  providers: [
+    AuthService,
+    AccessTokenGuard,
+    AuthRateLimiter,
+    LoginRateLimitGuard,
+    // Encrypts the 2FA secrets with the key from .env (ADR 0013)
+    { provide: SecretBox, useFactory: () => new SecretBox(env.TOTP_ENCRYPTION_KEY) },
+  ],
   exports: [AuthService, AccessTokenGuard],
 })
 export class AuthModule {}

@@ -29,6 +29,7 @@ function rawInsert(email: string, role = 'SUPER_ADMIN') {
 describe('users table (real PostgreSQL, test database)', () => {
   beforeEach(async () => {
     await prisma.session.deleteMany();
+    await prisma.recoveryCode.deleteMany();
     await prisma.user.deleteMany();
   });
 

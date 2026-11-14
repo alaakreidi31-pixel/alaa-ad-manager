@@ -45,7 +45,15 @@ model User {
   // the time until which login is refused after too many of them.
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
   lockedUntil         DateTime? @map("locked_until") @db.Timestamptz(3)
-  sessions     Session[]
+  // Two-factor authentication (ADR 0013). The TOTP secret is stored
+  // encrypted (AES-256-GCM), never in plain text. Both are set together
+  // (CHECK constraint in the migration). Mandatory for SUPER_ADMIN.
+  totpSecretEncrypted String?   @map("totp_secret_encrypted")
+  totpEnabledAt       DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
+  // Time step of the last accepted code: the same code is never accepted twice.
+  totpLastUsedStep    Int?      @map("totp_last_used_step")
+  sessions      Session[]
+  recoveryCodes RecoveryCode[]
 
   @@map("users")
 }
@@ -67,4 +75,19 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+// One-time backup codes for two-factor login (ADR 0013). Only the SHA-256
+// hash is stored. A used code keeps its row (used_at is set) until 2FA is
+// set up again, which replaces all of them.
+model RecoveryCode {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  codeHash  String    @map("code_hash")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+
+  @@index([userId])
+  @@map("recovery_codes")
 }

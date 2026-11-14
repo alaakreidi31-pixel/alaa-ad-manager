@@ -3,7 +3,12 @@ import { parseEnv } from './env.schema';
 
 const VALID_URL = 'postgresql://user:secret@localhost:5432/test_db';
 const SECRET = 'x'.repeat(32);
-const BASE = { DATABASE_URL: VALID_URL, JWT_ACCESS_SECRET: SECRET };
+const TOTP_KEY = Buffer.alloc(32, 7).toString('base64');
+const BASE = {
+  DATABASE_URL: VALID_URL,
+  JWT_ACCESS_SECRET: SECRET,
+  TOTP_ENCRYPTION_KEY: TOTP_KEY,
+};
 
 describe('parseEnv (configuration guard)', () => {
   it('accepts a valid configuration and applies defaults', () => {
@@ -14,6 +19,7 @@ describe('parseEnv (configuration guard)', () => {
       PORT: 3000,
       DATABASE_URL: VALID_URL,
       JWT_ACCESS_SECRET: SECRET,
+      TOTP_ENCRYPTION_KEY: TOTP_KEY,
     });
   });
 
@@ -31,6 +37,17 @@ describe('parseEnv (configuration guard)', () => {
 
   it('refuses a JWT_ACCESS_SECRET shorter than 32 characters', () => {
     expect(() => parseEnv({ ...BASE, JWT_ACCESS_SECRET: 'short' })).toThrow(/at least 32/);
+  });
+
+  it('refuses to start without TOTP_ENCRYPTION_KEY', () => {
+    expect(() => parseEnv({ ...BASE, TOTP_ENCRYPTION_KEY: undefined })).toThrow(
+      /TOTP_ENCRYPTION_KEY/,
+    );
+  });
+
+  it('refuses a TOTP_ENCRYPTION_KEY that is not 32 bytes', () => {
+    const short = Buffer.alloc(16).toString('base64');
+    expect(() => parseEnv({ ...BASE, TOTP_ENCRYPTION_KEY: short })).toThrow(/32 random bytes/);
   });
 
   it('refuses a DATABASE_URL that is not PostgreSQL', () => {

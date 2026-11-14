@@ -13,6 +13,12 @@ const EnvSchema = z.object({
   JWT_ACCESS_SECRET: z
     .string({ message: 'is required (see docs/development.md)' })
     .min(32, { message: 'must be at least 32 characters (see docs/development.md)' }),
+  // Encrypts the 2FA secrets in the database (ADR 0013): 32 random bytes in base64.
+  TOTP_ENCRYPTION_KEY: z
+    .string({ message: 'is required (see docs/development.md)' })
+    .refine((value) => Buffer.from(value, 'base64').length === 32, {
+      message: 'must be 32 random bytes in base64 (see docs/development.md)',
+    }),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

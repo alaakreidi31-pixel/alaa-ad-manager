@@ -21,7 +21,10 @@ import {
   AccountLockedError,
   AccountSuspendedError,
   InvalidCredentialsError,
+  InvalidLoginChallengeError,
   InvalidSessionError,
+  InvalidTwoFactorCodeError,
+  TwoFactorSetupRequiredError,
 } from './auth.errors';
 import { LoginRateLimitGuard } from './login-rate-limit.guard';
 import { AuthService, type IssuedTokens } from './auth.service';
@@ -31,6 +34,12 @@ import { readCookie } from './tokens';
 const LoginSchema = z.object({
   email: z.string().min(1).max(320),
   password: z.string().min(1).max(128),
+});
+
+const TwoFactorSchema = z.object({
+  challengeToken: z.string().min(1).max(2000),
+  // 6-digit app code, or a recovery code (XXXXX-XXXXX)
+  code: z.string().min(1).max(32),
 });
 
 function cookieOptions(expires?: Date): CookieOptions {
@@ -45,13 +54,18 @@ function cookieOptions(expires?: Date): CookieOptions {
 
 // Converts expected auth failures into HTTP answers.
 function toHttpError(error: unknown): Error {
-  if (error instanceof InvalidCredentialsError || error instanceof InvalidSessionError) {
+  if (
+    error instanceof InvalidCredentialsError ||
+    error instanceof InvalidSessionError ||
+    error instanceof InvalidLoginChallengeError ||
+    error instanceof InvalidTwoFactorCodeError
+  ) {
     return new UnauthorizedException(error.message);
   }
   if (error instanceof AccountLockedError) {
     return new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);
   }
-  if (error instanceof AccountSuspendedError) {
+  if (error instanceof AccountSuspendedError || error instanceof TwoFactorSetupRequiredError) {
     return new ForbiddenException(error.message);
   }
   return error instanceof Error ? error : new Error('Unexpected error');
@@ -73,9 +87,41 @@ export class AuthController {
     if (!parsed.success) throw new BadRequestException('Email and password are required');
 
     try {
-      const tokens = await this.auth.login(
+      const result = await this.auth.login(
         parsed.data.email,
         parsed.data.password,
+        req.headers['user-agent'],
+      );
+      if (result.status === 'two_factor_required') {
+        // No session and no cookie yet: the second step is still needed.
+        return {
+          status: result.status,
+          challengeToken: result.challengeToken,
+          expiresIn: result.expiresIn,
+        };
+      }
+      return this.respond(result.tokens, res);
+    } catch (error) {
+      throw toHttpError(error);
+    }
+  }
+
+  // Second login step (ADR 0013): authenticator code or recovery code.
+  @Post('2fa/verify')
+  @HttpCode(200)
+  @UseGuards(LoginRateLimitGuard)
+  async verifyTwoFactor(
+    @Body() body: unknown,
+    @Req() req: AuthRequest,
+    @Res({ passthrough: true }) res: AuthResponse,
+  ) {
+    const parsed = TwoFactorSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException('Login step and code are required');
+
+    try {
+      const tokens = await this.auth.verifyTwoFactor(
+        parsed.data.challengeToken,
+        parsed.data.code,
         req.headers['user-agent'],
       );
       return this.respond(tokens, res);
@@ -123,6 +169,7 @@ export class AuthController {
       cookieOptions(tokens.refreshTokenExpiresAt),
     );
     return {
+      status: 'authenticated' as const,
       accessToken: tokens.accessToken,
       expiresIn: tokens.accessTokenExpiresIn,
       user: tokens.user,

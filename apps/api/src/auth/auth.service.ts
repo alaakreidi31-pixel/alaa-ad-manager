@@ -7,6 +7,7 @@ import { normalizeEmail } from '../users/email';
 import { hashPassword, verifyPassword } from './password';
 import {
   ACCESS_TOKEN_TTL_SECONDS,
+  LOGIN_CHALLENGE_TTL_SECONDS,
   LOCKOUT_DURATION_MS,
   MAX_FAILED_LOGIN_ATTEMPTS,
   REFRESH_TOKEN_TTL_MS,
@@ -15,15 +16,29 @@ import {
   AccountLockedError,
   AccountSuspendedError,
   InvalidCredentialsError,
+  InvalidLoginChallengeError,
   InvalidSessionError,
+  InvalidTwoFactorCodeError,
   RefreshTokenReuseError,
+  TwoFactorSetupRequiredError,
 } from './auth.errors';
+import { hashRecoveryCode, isRecoveryCodeFormat, normalizeRecoveryCode } from './recovery-codes';
+import { SecretBox } from './secret-box';
 import { generateRefreshToken, hashRefreshToken } from './tokens';
+import { findTotpTimeStep } from './totp';
 
 export interface AccessTokenPayload {
   sub: string; // user id
   sid: string; // session id
   role: UserRole;
+}
+
+// Short-lived token proving the password step succeeded (ADR 0013).
+// It has no "sid", so it can never be used as an access token.
+const LOGIN_CHALLENGE_PURPOSE = 'two_factor_login';
+interface LoginChallengePayload {
+  sub: string;
+  purpose: typeof LOGIN_CHALLENGE_PURPOSE;
 }
 
 export interface AuthUser {
@@ -41,6 +56,10 @@ export interface IssuedTokens {
   user: AuthUser;
 }
 
+export type LoginResult =
+  | { status: 'authenticated'; tokens: IssuedTokens }
+  | { status: 'two_factor_required'; challengeToken: string; expiresIn: number };
+
 const AUTH_USER_FIELDS = { id: true, email: true, fullName: true, role: true } as const;
 
 @Injectable()
@@ -52,9 +71,12 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly secretBox: SecretBox,
   ) {}
 
-  async login(email: string, password: string, userAgent?: string): Promise<IssuedTokens> {
+  // Step 1: email and password. Returns the tokens directly, or asks for the
+  // second step when the account uses two-factor authentication.
+  async login(email: string, password: string, userAgent?: string): Promise<LoginResult> {
     const user = await this.prisma.user.findUnique({ where: { email: normalizeEmail(email) } });
 
     if (!user) {
@@ -74,13 +96,103 @@ export class AuthService {
       throw new AccountSuspendedError();
     }
 
+    // With 2FA, the failure counter is NOT reset here: otherwise someone who
+    // knows the password could guess codes forever (4 wrong codes, correct
+    // password, 4 wrong codes...). It is reset only after the second step.
+    if (user.totpEnabledAt) {
+      const payload: LoginChallengePayload = { sub: user.id, purpose: LOGIN_CHALLENGE_PURPOSE };
+      const challengeToken = await this.jwt.signAsync(payload, {
+        expiresIn: LOGIN_CHALLENGE_TTL_SECONDS,
+      });
+      return {
+        status: 'two_factor_required',
+        challengeToken,
+        expiresIn: LOGIN_CHALLENGE_TTL_SECONDS,
+      };
+    }
+    if (user.role === 'SUPER_ADMIN') {
+      throw new TwoFactorSetupRequiredError();
+    }
+
+    await this.resetFailedLogins(user);
+    return { status: 'authenticated', tokens: await this.startSession(user, userAgent) };
+  }
+
+  // Step 2: a code from the authenticator app, or a one-time recovery code.
+  async verifyTwoFactor(
+    challengeToken: string,
+    code: string,
+    userAgent?: string,
+  ): Promise<IssuedTokens> {
+    let payload: LoginChallengePayload;
+    try {
+      payload = await this.jwt.verifyAsync<LoginChallengePayload>(challengeToken);
+    } catch {
+      throw new InvalidLoginChallengeError();
+    }
+    if (payload.purpose !== LOGIN_CHALLENGE_PURPOSE || typeof payload.sub !== 'string') {
+      throw new InvalidLoginChallengeError();
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    if (!user?.totpSecretEncrypted) throw new InvalidLoginChallengeError();
+    if (user.lockedUntil && user.lockedUntil > new Date()) throw new AccountLockedError();
+    if (user.status !== 'ACTIVE') throw new AccountSuspendedError();
+
+    const accepted = await this.consumeSecondFactor(user.id, user.totpSecretEncrypted, code);
+    if (!accepted) {
+      // Wrong codes count toward the same lock as wrong passwords.
+      if (await this.recordFailedLogin(user.id)) throw new AccountLockedError();
+      throw new InvalidTwoFactorCodeError();
+    }
+
+    await this.resetFailedLogins(user);
+    return this.startSession(user, userAgent);
+  }
+
+  // Accepts each code only once. Both updates are conditional, so two
+  // parallel requests with the same code cannot both succeed.
+  private async consumeSecondFactor(
+    userId: string,
+    secretEncrypted: string,
+    input: string,
+  ): Promise<boolean> {
+    const code = normalizeRecoveryCode(input);
+
+    if (/^\d{6}$/.test(code)) {
+      const step = findTotpTimeStep(this.secretBox.decrypt(secretEncrypted), code);
+      if (step === null) return false;
+      const used = await this.prisma.user.updateMany({
+        where: {
+          id: userId,
+          OR: [{ totpLastUsedStep: null }, { totpLastUsedStep: { lt: step } }],
+        },
+        data: { totpLastUsedStep: step },
+      });
+      return used.count === 1;
+    }
+
+    if (isRecoveryCodeFormat(code)) {
+      const used = await this.prisma.recoveryCode.updateMany({
+        where: { userId, codeHash: hashRecoveryCode(code), usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      return used.count === 1;
+    }
+    return false;
+  }
+
+  private async resetFailedLogins(user: {
+    id: string;
+    failedLoginAttempts: number;
+    lockedUntil: Date | null;
+  }): Promise<void> {
     if (user.failedLoginAttempts > 0 || user.lockedUntil) {
       await this.prisma.user.update({
         where: { id: user.id },
         data: { failedLoginAttempts: 0, lockedUntil: null },
       });
     }
-    return this.startSession(user, userAgent);
   }
 
   // Counts a wrong password. The increment is atomic in PostgreSQL, so
@@ -168,6 +280,10 @@ export class AuthService {
     try {
       payload = await this.jwt.verifyAsync<AccessTokenPayload>(token);
     } catch {
+      throw new InvalidSessionError();
+    }
+    // A login challenge (or any other token without a session id) is refused.
+    if (typeof payload.sid !== 'string' || typeof payload.sub !== 'string') {
       throw new InvalidSessionError();
     }
 

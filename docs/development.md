@@ -75,6 +75,16 @@ Add-Content -Path apps\api\.env -Value ("`nJWT_ACCESS_SECRET=" + (node -e "proce
 
 للتأكد (يطبع `True` فقط): `Select-String -Path apps\api\.env -Pattern '^JWT_ACCESS_SECRET=' -Quiet`
 
+`TOTP_ENCRYPTION_KEY` (مفتاح تشفير أسرار 2FA، [ADR 0013](decisions/0013-two-factor-authentication.md)) بالطريقة نفسها: يُحذف سطر `TOTP_ENCRYPTION_KEY=CHANGE_ME`، ثم:
+
+```powershell
+Add-Content -Path apps\api\.env -Value ("`nTOTP_ENCRYPTION_KEY=" + (node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64'))"))
+```
+
+للتأكد (يطبع `True` فقط): `Select-String -Path apps\api\.env -Pattern '^TOTP_ENCRYPTION_KEY=' -Quiet`
+
+**إذا ضاع هذا المفتاح أو تغيّر**، يجب إعادة إعداد 2FA بالأمر `pnpm admin:setup-2fa`.
+
 - ملف `.env` محمي بـ `.gitignore` ولا يُحفظ في Git أبداً.
 - لا يُصوَّر ولا يُرسل ولا يُنسخ إلى التوثيق.
 
@@ -99,6 +109,21 @@ pnpm admin:create-super-admin
 ```
 
 يسأل عن البريد والاسم وكلمة المرور (12 حرفاً على الأقل، ولا تظهر أثناء الكتابة). لا يوجد تسجيل عام. انظر [ADR 0010](decisions/0010-no-public-registration.md).
+
+### تفعيل التحقق بخطوتين (2FA)
+
+**إلزامي لحساب SUPER_ADMIN قبل أي دخول.** يحتاج تطبيق Google Authenticator على الهاتف. أوقفي `pnpm dev` أولاً:
+
+```powershell
+pnpm admin:setup-2fa
+```
+
+1. يسأل عن البريد وكلمة المرور.
+2. يعرض رمز QR في الطرفية: في التطبيق اضغطي **+** ثم **Scan a QR code**. إذا تعذّر المسح، يعرض مفتاحاً يُكتب يدوياً.
+3. يطلب الرمز المكوّن من 6 أرقام من التطبيق.
+4. يعرض **10 رموز احتياطية مرة واحدة فقط**. تُحفظ في مكان آمن (مدير كلمات مرور أو ورقة مطبوعة). كل رمز يعمل مرة واحدة، عند ضياع الهاتف.
+
+إعادة تشغيل الأمر (هاتف جديد مثلاً) تستبدل المفتاح والرموز الاحتياطية، وتغلق كل الجلسات المفتوحة. انظر [ADR 0013](decisions/0013-two-factor-authentication.md).
 
 ## 2. العمل اليومي
 

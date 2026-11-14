@@ -38,6 +38,7 @@
 | [0010](decisions/0010-no-public-registration.md)        | لا تسجيل عام، وSUPER_ADMIN بأمر إداري فقط          | منفّذ               |
 | [0011](decisions/0011-sessions-and-tokens.md)           | الجلسات: Access Token وRefresh Token متجدد         | منفّذ               |
 | [0012](decisions/0012-brute-force-protection.md)        | الحماية من التخمين: قفل الحساب وحد لكل IP          | منفّذ               |
+| [0013](decisions/0013-two-factor-authentication.md)     | التحقق بخطوتين (2FA) إلزامي لحساب SUPER_ADMIN      | منفّذ               |
 
 ## قاعدة أمان لهذا المجلد
 

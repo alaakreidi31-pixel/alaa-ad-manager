@@ -91,6 +91,7 @@ describe('rollback of every migration (test database only)', () => {
     try {
       expect(await app.user.count()).toBeTypeOf('number');
       expect(await app.session.count()).toBeTypeOf('number');
+      expect(await app.recoveryCode.count()).toBeTypeOf('number');
     } finally {
       await app.$disconnect();
     }
