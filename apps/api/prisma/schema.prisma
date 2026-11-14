@@ -91,3 +91,24 @@ model RecoveryCode {
   @@index([userId])
   @@map("recovery_codes")
 }
+
+// Security audit log (ADR 0014). APPEND-ONLY: the application user (alaa_app)
+// may only INSERT and SELECT; UPDATE and DELETE are revoked in the migration.
+// No foreign key to users on purpose: the history must outlive any change to
+// the accounts, and must never block one.
+model AuditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  // What happened, e.g. "auth.login.failed" (list in src/audit/audit.ts)
+  action    String
+  // The account concerned; null when unknown (e.g. login with an unknown email)
+  userId    String?  @map("user_id") @db.Uuid
+  ip        String?
+  userAgent String?  @map("user_agent")
+  // Extra details (e.g. the failure reason). Never a password, token or code.
+  metadata  Json?
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

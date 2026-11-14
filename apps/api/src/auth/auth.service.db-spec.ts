@@ -1,6 +1,7 @@
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'node:crypto';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuditService } from '../audit/audit.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import { createTestPrisma } from '../testing/test-prisma';
 import {
@@ -30,7 +31,8 @@ const jwt = new JwtService({
   verifyOptions: { algorithms: ['HS256'] },
 });
 const box = new SecretBox(randomBytes(32).toString('base64'));
-const auth = new AuthService(prisma as unknown as PrismaService, jwt, box);
+const audit = new AuditService(prisma as unknown as PrismaService);
+const auth = new AuthService(prisma as unknown as PrismaService, jwt, box, audit);
 
 const PASSWORD = 'a long enough password';
 let passwordHash: string;
@@ -460,6 +462,154 @@ describe('AuthService (real PostgreSQL, test database)', () => {
       expect(newCodes).not.toEqual(recoveryCodes);
       expect(await prisma.recoveryCode.count()).toBe(10);
       expect(await prisma.session.count({ where: { revokedAt: null } })).toBe(0);
+    });
+  });
+  describe('audit log (ADR 0014)', () => {
+    const ctx = { ip: '203.0.113.5', userAgent: 'TestBrowser/1.0' };
+    // The audit log cannot be emptied (append-only): each test reads only
+    // the rows written since it started.
+    let since: Date;
+    beforeEach(async () => {
+      // A short pause, so no row of the previous test has the same millisecond.
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      since = new Date();
+    });
+
+    async function auditRows() {
+      return prisma.auditLog.findMany({
+        where: { createdAt: { gte: since } },
+        orderBy: { createdAt: 'asc' },
+      });
+    }
+    async function actions() {
+      return (await auditRows()).map((row) => row.action);
+    }
+
+    it('records a successful login with the IP and the browser', async () => {
+      const user = await createUser();
+      await auth.login('owner@alaa.test', PASSWORD, ctx);
+
+      const [row] = await auditRows();
+      expect(row).toMatchObject({
+        action: 'auth.login.succeeded',
+        userId: user.id,
+        ip: '203.0.113.5',
+        userAgent: 'TestBrowser/1.0',
+        metadata: { method: 'password' },
+      });
+    });
+
+    it('records a login with an unknown email, without a user', async () => {
+      await auth.login(' Nobody@Alaa.test ', PASSWORD, ctx).catch(() => undefined);
+      const [row] = await auditRows();
+      expect(row).toMatchObject({
+        action: 'auth.login.failed',
+        userId: null,
+        metadata: { reason: 'unknown_email', email: 'nobody@alaa.test' },
+      });
+    });
+
+    it('records each wrong password, then the lock', async () => {
+      await createUser();
+      for (let i = 0; i < 5; i += 1) {
+        await auth.login('owner@alaa.test', 'wrong password!!', ctx).catch(() => undefined);
+      }
+      const rows = await auditRows();
+      expect(rows.filter((row) => row.action === 'auth.login.failed')).toHaveLength(5);
+      expect(rows.filter((row) => row.action === 'auth.account.locked')).toHaveLength(1);
+      expect(rows.find((row) => row.action === 'auth.login.failed')?.metadata).toEqual({
+        reason: 'wrong_password',
+      });
+    });
+
+    it('records refused logins with their reason', async () => {
+      await createUser('SUSPENDED');
+      await auth.login('owner@alaa.test', PASSWORD).catch(() => undefined);
+      expect((await auditRows())[0]?.metadata).toEqual({ reason: 'account_suspended' });
+    });
+
+    it('records the two login steps and the method used', async () => {
+      const user = await createUser('ACTIVE', 'SUPER_ADMIN');
+      const secret = generateTotpSecret();
+      const [recovery = ''] = await enableTwoFactor(
+        prisma,
+        box,
+        user.id,
+        secret,
+        codeFor(secret, -1),
+      );
+
+      const step1 = await auth.login('owner@alaa.test', PASSWORD, ctx);
+      if (step1.status !== 'two_factor_required') throw new Error('Expected 2FA step');
+      await auth.verifyTwoFactor(step1.challengeToken, '000000', ctx).catch(() => undefined);
+      await auth.verifyTwoFactor(step1.challengeToken, codeFor(secret), ctx);
+      await auth.verifyTwoFactor(step1.challengeToken, recovery, ctx);
+
+      const rows = await auditRows();
+      expect(rows.map((row) => row.action)).toEqual(
+        expect.arrayContaining([
+          'admin.two_factor.enabled',
+          'auth.login.password_verified',
+          'auth.two_factor.failed',
+          'auth.login.succeeded',
+        ]),
+      );
+      const methods = rows
+        .filter((row) => row.action === 'auth.login.succeeded')
+        .map((row) => (row.metadata as { method: string }).method)
+        .sort();
+      expect(methods).toEqual(['recovery_code', 'totp']);
+    });
+
+    it('records a stolen refresh token being reused', async () => {
+      const user = await createUser();
+      const first = await signIn();
+      await auth.refresh(first.refreshToken, ctx);
+      await auth.refresh(first.refreshToken, ctx).catch(() => undefined);
+
+      const row = (await auditRows()).find((r) => r.action === 'auth.session.reuse_detected');
+      expect(row?.userId).toBe(user.id);
+    });
+
+    it('records a logout once, and nothing for an unknown token', async () => {
+      await createUser();
+      const { refreshToken } = await signIn();
+      await auth.logout(refreshToken, ctx);
+      await auth.logout(refreshToken, ctx);
+      await auth.logout('unknown', ctx);
+      expect((await actions()).filter((a) => a === 'auth.logout')).toHaveLength(1);
+    });
+
+    it('never stores a password, token, code or secret', async () => {
+      const user = await createUser('ACTIVE', 'SUPER_ADMIN');
+      const secret = generateTotpSecret();
+      const recoveryCodes = await enableTwoFactor(
+        prisma,
+        box,
+        user.id,
+        secret,
+        codeFor(secret, -1),
+      );
+      await auth.login('owner@alaa.test', 'wrong password!!').catch(() => undefined);
+      const step1 = await auth.login('owner@alaa.test', PASSWORD);
+      if (step1.status !== 'two_factor_required') throw new Error('Expected 2FA step');
+      const code = codeFor(secret);
+      const tokens = await auth.verifyTwoFactor(step1.challengeToken, code);
+      await auth.logout(tokens.refreshToken);
+
+      const stored = JSON.stringify(await auditRows());
+      for (const secretValue of [
+        PASSWORD,
+        'wrong password!!',
+        secret,
+        code,
+        step1.challengeToken,
+        tokens.accessToken,
+        tokens.refreshToken,
+        ...recoveryCodes,
+      ]) {
+        expect(stored).not.toContain(secretValue);
+      }
     });
   });
 });

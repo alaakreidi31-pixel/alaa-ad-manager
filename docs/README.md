@@ -39,6 +39,7 @@
 | [0011](decisions/0011-sessions-and-tokens.md)           | الجلسات: Access Token وRefresh Token متجدد         | منفّذ               |
 | [0012](decisions/0012-brute-force-protection.md)        | الحماية من التخمين: قفل الحساب وحد لكل IP          | منفّذ               |
 | [0013](decisions/0013-two-factor-authentication.md)     | التحقق بخطوتين (2FA) إلزامي لحساب SUPER_ADMIN      | منفّذ               |
+| [0014](decisions/0014-audit-log.md)                     | سجل التدقيق للأحداث الأمنية، للإضافة فقط           | منفّذ               |
 
 ## قاعدة أمان لهذا المجلد
 

@@ -40,6 +40,16 @@ describe('createSuperAdmin (real PostgreSQL, test database)', () => {
     expect(await verifyPassword(stored.passwordHash, VALID.password)).toBe(true);
   });
 
+  it('writes the creation to the audit log, in the same transaction', async () => {
+    const created = await createSuperAdmin(prisma, VALID);
+    const rows = await prisma.auditLog.findMany({ where: { userId: created.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      action: 'admin.super_admin.created',
+      metadata: { source: 'cli' },
+    });
+  });
+
   it('does not return the password hash', async () => {
     const created = await createSuperAdmin(prisma, VALID);
     expect(Object.keys(created).sort()).toEqual(['createdAt', 'email', 'fullName', 'id']);

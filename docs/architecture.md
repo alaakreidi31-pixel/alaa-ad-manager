@@ -1,6 +1,6 @@
 # البنية الحالية للنظام
 
-> هذا الملف يصف ما هو **موجود فعلاً** في الكود حتى نهاية الخطوة 1.5. ما لم يُبنَ بعد مذكور صراحةً في القسم الأخير.
+> هذا الملف يصف ما هو **موجود فعلاً** في الكود حتى نهاية الخطوة 1.6. ما لم يُبنَ بعد مذكور صراحةً في القسم الأخير.
 
 ## الصورة العامة
 
@@ -60,6 +60,13 @@
 **الحماية من التخمين ([ADR 0012](decisions/0012-brute-force-protection.md)):** 5 كلمات مرور خاطئة متتالية تقفل الحساب 15 دقيقة (العمودان `failed_login_attempts` و`locked_until` في `users`)، و`login` و`refresh` محدودان بـ 10 طلبات في الدقيقة لكل IP. الرد في الحالتين 429.
 
 **التحقق بخطوتين ([ADR 0013](decisions/0013-two-factor-authentication.md)):** إذا كان الحساب يستخدم 2FA، يعيد `login` تذكرة مؤقتة (5 دقائق) بدل الجلسة، وتُفتح الجلسة بعد `2fa/verify`. حساب `SUPER_ADMIN` دون 2FA يُرفض (403). خوارزمية TOTP في `apps/api/src/auth/totp.ts`، والتشفير AES-256-GCM في `secret-box.ts`، والتفعيل بالأمر `pnpm admin:setup-2fa`.
+
+### جدول `audit_logs` (migration `20261114210000_create_audit_logs`)
+
+- سجل الأحداث الأمنية (الدخول، والفشل، والقفل، و2FA، والخروج، والأوامر الإدارية). انظر [ADR 0014](decisions/0014-audit-log.md).
+- **للإضافة فقط:** `alaa_app` لا يملك `UPDATE` ولا `DELETE` على هذا الجدول، فقاعدة البيانات ترفض تعديل السجل أو حذفه.
+- بلا Foreign Key إلى `users` عن قصد. لا يحتوي أي كلمة مرور أو token أو رمز.
+- الكتابة عبر `apps/api/src/audit/audit.service.ts`.
 
 ### جدول `recovery_codes` (migration `20261114120000_add_two_factor`)
 
@@ -128,26 +135,27 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (140 اختباراً)
+## الاختبارات الموجودة (154 اختباراً)
 
-| الملف                                                   | العدد | ماذا يحمي                                                                     |
-| ------------------------------------------------------- | ----- | ----------------------------------------------------------------------------- |
-| `apps/api/src/config/env.schema.spec.ts`                | 10    | حارس الإعدادات يقبل الصحيح ويرفض الناقص أو الخاطئ                             |
-| `apps/api/src/health/health.controller.spec.ts`         | 2     | `/api/health` يعيد `up`، أو `down` مع 503                                     |
-| `apps/api/src/users/email.spec.ts`                      | 4     | توحيد البريد                                                                  |
-| `apps/api/src/testing/test-database.spec.ts`            | 5     | حارس قاعدة الاختبار، ولا يُظهر كلمة المرور                                     |
-| `apps/api/src/users/users.db-spec.ts`                   | 12    | جدول المستخدمين على PostgreSQL الحقيقي، وأن `alaa_app` لا يغيّر البنية         |
-| `apps/api/src/auth/password.spec.ts`                    | 9     | تشفير argon2id، والتحقق، وسياسة كلمة المرور                                   |
-| `apps/api/src/users/create-super-admin.db-spec.ts`      | 8     | إنشاء SUPER_ADMIN: واحد فقط، وتشفير كلمة المرور، ورفض المدخلات الخاطئة        |
-| `apps/api/src/auth/tokens.spec.ts`                      | 9     | توليد الرموز وبصمتها، وقراءة الـ cookie والـ Bearer                           |
-| `apps/api/src/auth/auth.service.db-spec.ts`             | 40    | الدخول، والتجديد، واكتشاف الرمز المسروق، والخروج، والإيقاف، وقفل الحساب، و2FA |
-| `apps/api/src/auth/totp.spec.ts`                        | 15    | خوارزمية TOTP على متجهات RFC 6238 الرسمية، وBase32، ورابط QR                  |
-| `apps/api/src/auth/secret-box.spec.ts`                  | 6     | تشفير AES-256-GCM: رفض القيمة المعدّلة والمفتاح الخاطئ                         |
-| `apps/api/src/auth/recovery-codes.spec.ts`              | 4     | الرموز الاحتياطية: الصيغة، والتخزين كـ hash فقط                               |
-| `apps/api/src/auth/rate-limiter.spec.ts`                | 5     | حد الطلبات لكل IP                                                             |
-| `apps/api/src/migrations/create-users.rollback-spec.ts` | 2     | لكل migration ملف تراجع، والتراجع عن الكل ثم إعادة التطبيق                    |
-| `apps/web/src/lib/health.test.ts`                       | 6     | الواجهة تتعامل مع كل حالات رد الخادم                                          |
-| `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                     |
+| الملف                                                   | العدد | ماذا يحمي                                                                                   |
+| ------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
+| `apps/api/src/config/env.schema.spec.ts`                | 10    | حارس الإعدادات يقبل الصحيح ويرفض الناقص أو الخاطئ                                           |
+| `apps/api/src/health/health.controller.spec.ts`         | 2     | `/api/health` يعيد `up`، أو `down` مع 503                                                   |
+| `apps/api/src/users/email.spec.ts`                      | 4     | توحيد البريد                                                                                |
+| `apps/api/src/testing/test-database.spec.ts`            | 5     | حارس قاعدة الاختبار، ولا يُظهر كلمة المرور                                                   |
+| `apps/api/src/users/users.db-spec.ts`                   | 12    | جدول المستخدمين على PostgreSQL الحقيقي، وأن `alaa_app` لا يغيّر البنية                       |
+| `apps/api/src/auth/password.spec.ts`                    | 9     | تشفير argon2id، والتحقق، وسياسة كلمة المرور                                                 |
+| `apps/api/src/users/create-super-admin.db-spec.ts`      | 9     | إنشاء SUPER_ADMIN: واحد فقط، وتشفير كلمة المرور، ورفض المدخلات الخاطئة                      |
+| `apps/api/src/audit/audit.db-spec.ts`                   | 5     | سجل التدقيق: `alaa_app` يضيف ويقرأ فقط، ولا يعدّل ولا يحذف                                   |
+| `apps/api/src/auth/tokens.spec.ts`                      | 9     | توليد الرموز وبصمتها، وقراءة الـ cookie والـ Bearer                                         |
+| `apps/api/src/auth/auth.service.db-spec.ts`             | 48    | الدخول، والتجديد، واكتشاف الرمز المسروق، والخروج، والإيقاف، وقفل الحساب، و2FA، وسجل التدقيق |
+| `apps/api/src/auth/totp.spec.ts`                        | 15    | خوارزمية TOTP على متجهات RFC 6238 الرسمية، وBase32، ورابط QR                                |
+| `apps/api/src/auth/secret-box.spec.ts`                  | 6     | تشفير AES-256-GCM: رفض القيمة المعدّلة والمفتاح الخاطئ                                       |
+| `apps/api/src/auth/recovery-codes.spec.ts`              | 4     | الرموز الاحتياطية: الصيغة، والتخزين كـ hash فقط                                             |
+| `apps/api/src/auth/rate-limiter.spec.ts`                | 5     | حد الطلبات لكل IP                                                                           |
+| `apps/api/src/migrations/create-users.rollback-spec.ts` | 2     | لكل migration ملف تراجع، والتراجع عن الكل ثم إعادة التطبيق                                  |
+| `apps/web/src/lib/health.test.ts`                       | 6     | الواجهة تتعامل مع كل حالات رد الخادم                                                        |
+| `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                   |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.
 
@@ -175,7 +183,7 @@ alaa-ad-manager/
 
 ## ما لم يُبنَ بعد
 
-- سجل التدقيق (1.6)، وصفحة الدخول في الواجهة (1.7). لا يوجد أي endpoint لتسجيل حساب جديد (ADR 0010).
+- صفحة الدخول في الواجهة (1.7). لا يوجد أي endpoint لتسجيل حساب جديد (ADR 0010).
 - محتوى `packages/shared`: نوع `HealthResponse` معرّف حالياً في الخادم والواجهة كلٍّ على حدة، والخطة نقله إلى الحزمة المشتركة لاحقاً.
 - Docker وأي إعداد للنشر.
 - التكاملات مع Meta وGoogle وWhatsApp (مؤجلة إلى ما بعد النسخة الأساسية بقرار صاحبة المشروع).

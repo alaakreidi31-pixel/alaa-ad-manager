@@ -14,6 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { z } from 'zod';
+import type { AuditContext } from '../audit/audit';
 import { env } from '../config/env';
 import { AccessTokenGuard } from './access-token.guard';
 import { REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH } from './auth.constants';
@@ -50,6 +51,11 @@ function cookieOptions(expires?: Date): CookieOptions {
     path: REFRESH_COOKIE_PATH,
     ...(expires ? { expires } : {}),
   };
+}
+
+// Where the request came from, for the sessions and the audit log (ADR 0014).
+function requestContext(req: AuthRequest): AuditContext {
+  return { ip: req.ip, userAgent: req.headers['user-agent'] };
 }
 
 // Converts expected auth failures into HTTP answers.
@@ -90,7 +96,7 @@ export class AuthController {
       const result = await this.auth.login(
         parsed.data.email,
         parsed.data.password,
-        req.headers['user-agent'],
+        requestContext(req),
       );
       if (result.status === 'two_factor_required') {
         // No session and no cookie yet: the second step is still needed.
@@ -122,7 +128,7 @@ export class AuthController {
       const tokens = await this.auth.verifyTwoFactor(
         parsed.data.challengeToken,
         parsed.data.code,
-        req.headers['user-agent'],
+        requestContext(req),
       );
       return this.respond(tokens, res);
     } catch (error) {
@@ -138,7 +144,7 @@ export class AuthController {
     if (!token) throw new UnauthorizedException('Session is invalid or expired');
 
     try {
-      const tokens = await this.auth.refresh(token, req.headers['user-agent']);
+      const tokens = await this.auth.refresh(token, requestContext(req));
       return this.respond(tokens, res);
     } catch (error) {
       res.clearCookie(REFRESH_COOKIE_NAME, cookieOptions());
@@ -149,7 +155,10 @@ export class AuthController {
   @Post('logout')
   @HttpCode(204)
   async logout(@Req() req: AuthRequest, @Res({ passthrough: true }) res: AuthResponse) {
-    await this.auth.logout(readCookie(req.headers.cookie, REFRESH_COOKIE_NAME));
+    await this.auth.logout(
+      readCookie(req.headers.cookie, REFRESH_COOKIE_NAME),
+      requestContext(req),
+    );
     res.clearCookie(REFRESH_COOKIE_NAME, cookieOptions());
   }
 

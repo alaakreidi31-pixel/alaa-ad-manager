@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'node:crypto';
+import type { AuditContext } from '../audit/audit';
+import { AuditService } from '../audit/audit.service';
 import type { UserRole } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeEmail } from '../users/email';
@@ -72,27 +74,46 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly secretBox: SecretBox,
+    private readonly audit: AuditService,
   ) {}
 
   // Step 1: email and password. Returns the tokens directly, or asks for the
   // second step when the account uses two-factor authentication.
-  async login(email: string, password: string, userAgent?: string): Promise<LoginResult> {
-    const user = await this.prisma.user.findUnique({ where: { email: normalizeEmail(email) } });
+  // Every outcome is written to the audit log (ADR 0014).
+  async login(email: string, password: string, ctx: AuditContext = {}): Promise<LoginResult> {
+    const normalizedEmail = normalizeEmail(email);
+    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (!user) {
       this.dummyHash ??= hashPassword(randomBytes(16).toString('hex'));
       await verifyPassword(await this.dummyHash, password);
+      await this.audit.record({
+        ...ctx,
+        action: 'auth.login.failed',
+        metadata: { reason: 'unknown_email', email: normalizedEmail.slice(0, 320) },
+      });
       throw new InvalidCredentialsError();
     }
+    const fail = (reason: string) =>
+      this.audit.record({
+        ...ctx,
+        action: 'auth.login.failed',
+        userId: user.id,
+        metadata: { reason },
+      });
+
     // While locked, the password is not checked at all (ADR 0012).
     if (user.lockedUntil && user.lockedUntil > new Date()) {
+      await fail('account_locked');
       throw new AccountLockedError();
     }
     if (!(await verifyPassword(user.passwordHash, password))) {
-      if (await this.recordFailedLogin(user.id)) throw new AccountLockedError();
+      await fail('wrong_password');
+      if (await this.recordFailedLogin(user.id, ctx)) throw new AccountLockedError();
       throw new InvalidCredentialsError();
     }
     if (user.status !== 'ACTIVE') {
+      await fail('account_suspended');
       throw new AccountSuspendedError();
     }
 
@@ -104,6 +125,7 @@ export class AuthService {
       const challengeToken = await this.jwt.signAsync(payload, {
         expiresIn: LOGIN_CHALLENGE_TTL_SECONDS,
       });
+      await this.audit.record({ ...ctx, action: 'auth.login.password_verified', userId: user.id });
       return {
         status: 'two_factor_required',
         challengeToken,
@@ -111,43 +133,78 @@ export class AuthService {
       };
     }
     if (user.role === 'SUPER_ADMIN') {
+      await fail('two_factor_setup_required');
       throw new TwoFactorSetupRequiredError();
     }
 
     await this.resetFailedLogins(user);
-    return { status: 'authenticated', tokens: await this.startSession(user, userAgent) };
+    const tokens = await this.startSession(user, ctx);
+    await this.audit.record({
+      ...ctx,
+      action: 'auth.login.succeeded',
+      userId: user.id,
+      metadata: { method: 'password' },
+    });
+    return { status: 'authenticated', tokens };
   }
 
   // Step 2: a code from the authenticator app, or a one-time recovery code.
   async verifyTwoFactor(
     challengeToken: string,
     code: string,
-    userAgent?: string,
+    ctx: AuditContext = {},
   ): Promise<IssuedTokens> {
-    let payload: LoginChallengePayload;
+    let payload: LoginChallengePayload | undefined;
     try {
       payload = await this.jwt.verifyAsync<LoginChallengePayload>(challengeToken);
     } catch {
-      throw new InvalidLoginChallengeError();
+      payload = undefined;
     }
-    if (payload.purpose !== LOGIN_CHALLENGE_PURPOSE || typeof payload.sub !== 'string') {
+    if (payload?.purpose !== LOGIN_CHALLENGE_PURPOSE || typeof payload.sub !== 'string') {
+      await this.audit.record({
+        ...ctx,
+        action: 'auth.two_factor.failed',
+        metadata: { reason: 'invalid_challenge' },
+      });
       throw new InvalidLoginChallengeError();
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user?.totpSecretEncrypted) throw new InvalidLoginChallengeError();
-    if (user.lockedUntil && user.lockedUntil > new Date()) throw new AccountLockedError();
-    if (user.status !== 'ACTIVE') throw new AccountSuspendedError();
+    const fail = (reason: string) =>
+      this.audit.record({
+        ...ctx,
+        action: 'auth.two_factor.failed',
+        userId: user.id,
+        metadata: { reason },
+      });
 
-    const accepted = await this.consumeSecondFactor(user.id, user.totpSecretEncrypted, code);
-    if (!accepted) {
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      await fail('account_locked');
+      throw new AccountLockedError();
+    }
+    if (user.status !== 'ACTIVE') {
+      await fail('account_suspended');
+      throw new AccountSuspendedError();
+    }
+
+    const method = await this.consumeSecondFactor(user.id, user.totpSecretEncrypted, code);
+    if (!method) {
       // Wrong codes count toward the same lock as wrong passwords.
-      if (await this.recordFailedLogin(user.id)) throw new AccountLockedError();
+      await fail('invalid_code');
+      if (await this.recordFailedLogin(user.id, ctx)) throw new AccountLockedError();
       throw new InvalidTwoFactorCodeError();
     }
 
     await this.resetFailedLogins(user);
-    return this.startSession(user, userAgent);
+    const tokens = await this.startSession(user, ctx);
+    await this.audit.record({
+      ...ctx,
+      action: 'auth.login.succeeded',
+      userId: user.id,
+      metadata: { method },
+    });
+    return tokens;
   }
 
   // Accepts each code only once. Both updates are conditional, so two
@@ -156,12 +213,12 @@ export class AuthService {
     userId: string,
     secretEncrypted: string,
     input: string,
-  ): Promise<boolean> {
+  ): Promise<'totp' | 'recovery_code' | null> {
     const code = normalizeRecoveryCode(input);
 
     if (/^\d{6}$/.test(code)) {
       const step = findTotpTimeStep(this.secretBox.decrypt(secretEncrypted), code);
-      if (step === null) return false;
+      if (step === null) return null;
       const used = await this.prisma.user.updateMany({
         where: {
           id: userId,
@@ -169,7 +226,7 @@ export class AuthService {
         },
         data: { totpLastUsedStep: step },
       });
-      return used.count === 1;
+      return used.count === 1 ? 'totp' : null;
     }
 
     if (isRecoveryCodeFormat(code)) {
@@ -177,9 +234,9 @@ export class AuthService {
         where: { userId, codeHash: hashRecoveryCode(code), usedAt: null },
         data: { usedAt: new Date() },
       });
-      return used.count === 1;
+      return used.count === 1 ? 'recovery_code' : null;
     }
-    return false;
+    return null;
   }
 
   private async resetFailedLogins(user: {
@@ -198,7 +255,7 @@ export class AuthService {
   // Counts a wrong password. The increment is atomic in PostgreSQL, so
   // parallel attempts are all counted. On the last allowed attempt, locks the
   // account and restarts the counter. Returns true when this attempt locked it.
-  private async recordFailedLogin(userId: string): Promise<boolean> {
+  private async recordFailedLogin(userId: string, ctx: AuditContext): Promise<boolean> {
     const { failedLoginAttempts } = await this.prisma.user.update({
       where: { id: userId },
       data: { failedLoginAttempts: { increment: 1 } },
@@ -210,12 +267,18 @@ export class AuthService {
       where: { id: userId },
       data: { failedLoginAttempts: 0, lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS) },
     });
+    await this.audit.record({
+      ...ctx,
+      action: 'auth.account.locked',
+      userId,
+      metadata: { minutes: LOCKOUT_DURATION_MS / 60_000 },
+    });
     return true;
   }
 
   // Rotation: every refresh token works once. Using an old one again means it
   // may have been stolen, so every session of that user is closed.
-  async refresh(refreshToken: string, userAgent?: string): Promise<IssuedTokens> {
+  async refresh(refreshToken: string, ctx: AuditContext = {}): Promise<IssuedTokens> {
     const now = new Date();
     const session = await this.prisma.session.findUnique({
       where: { refreshTokenHash: hashRefreshToken(refreshToken) },
@@ -225,6 +288,7 @@ export class AuthService {
     if (!session) throw new InvalidSessionError();
     if (session.revokedAt) {
       await this.revokeAllSessions(session.userId);
+      await this.recordReuse(session.userId, ctx);
       throw new RefreshTokenReuseError();
     }
     if (session.expiresAt <= now) throw new InvalidSessionError();
@@ -248,7 +312,7 @@ export class AuthService {
         data: {
           userId: session.userId,
           refreshTokenHash: hashRefreshToken(refreshTokenValue),
-          userAgent: userAgent ?? null,
+          userAgent: ctx.userAgent ?? null,
           expiresAt,
         },
       });
@@ -258,19 +322,32 @@ export class AuthService {
 
     if (!next) {
       await this.revokeAllSessions(session.userId);
+      await this.recordReuse(session.userId, ctx);
       throw new RefreshTokenReuseError();
     }
 
     return this.buildTokens(session.user, next.id, refreshTokenValue, expiresAt);
   }
 
+  private recordReuse(userId: string, ctx: AuditContext): Promise<void> {
+    return this.audit.record({ ...ctx, action: 'auth.session.reuse_detected', userId });
+  }
+
   // Never fails: logging out with an unknown or old token simply does nothing.
-  async logout(refreshToken: string | undefined): Promise<void> {
+  async logout(refreshToken: string | undefined, ctx: AuditContext = {}): Promise<void> {
     if (!refreshToken) return;
-    await this.prisma.session.updateMany({
-      where: { refreshTokenHash: hashRefreshToken(refreshToken), revokedAt: null },
+    const session = await this.prisma.session.findUnique({
+      where: { refreshTokenHash: hashRefreshToken(refreshToken) },
+      select: { id: true, userId: true },
+    });
+    if (!session) return;
+    const closed = await this.prisma.session.updateMany({
+      where: { id: session.id, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    if (closed.count === 1) {
+      await this.audit.record({ ...ctx, action: 'auth.logout', userId: session.userId });
+    }
   }
 
   // Checks an access token on every protected request: valid signature, and the
@@ -312,14 +389,14 @@ export class AuthService {
     });
   }
 
-  private async startSession(user: AuthUser, userAgent?: string): Promise<IssuedTokens> {
+  private async startSession(user: AuthUser, ctx: AuditContext): Promise<IssuedTokens> {
     const refreshTokenValue = generateRefreshToken();
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
     const session = await this.prisma.session.create({
       data: {
         userId: user.id,
         refreshTokenHash: hashRefreshToken(refreshTokenValue),
-        userAgent: userAgent ?? null,
+        userAgent: ctx.userAgent ?? null,
         expiresAt,
       },
     });

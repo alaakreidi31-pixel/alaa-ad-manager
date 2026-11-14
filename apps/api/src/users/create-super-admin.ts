@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { auditRow } from '../audit/audit';
 import { hashPassword, PasswordSchema } from '../auth/password';
 import type { PrismaClient } from '../generated/prisma/client';
 import { normalizeEmail } from './email';
@@ -56,11 +57,20 @@ export async function createSuperAdmin(
         throw new SuperAdminError('A SUPER_ADMIN account already exists. Nothing was created.');
       }
 
-      return tx.user.create({
+      const created = await tx.user.create({
         data: { email, fullName, passwordHash, role: 'SUPER_ADMIN' },
         // Never return the password hash
         select: { id: true, email: true, fullName: true, createdAt: true },
       });
+      // Same transaction: the account never exists without its audit row.
+      await tx.auditLog.create({
+        data: auditRow({
+          action: 'admin.super_admin.created',
+          userId: created.id,
+          metadata: { source: 'cli' },
+        }),
+      });
+      return created;
     });
   } catch (error) {
     if (isUniqueViolation(error)) {

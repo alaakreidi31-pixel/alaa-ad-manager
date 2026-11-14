@@ -1,3 +1,4 @@
+import { auditRow } from '../audit/audit';
 import type { PrismaClient } from '../generated/prisma/client';
 import { InvalidTwoFactorCodeError } from './auth.errors';
 import { generateRecoveryCodes, hashRecoveryCode } from './recovery-codes';
@@ -35,9 +36,17 @@ export async function enableTwoFactor(
     await tx.recoveryCode.createMany({
       data: recoveryCodes.map((value) => ({ userId, codeHash: hashRecoveryCode(value) })),
     });
-    await tx.session.updateMany({
+    const closed = await tx.session.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: now },
+    });
+    // Written in the same transaction: no change without its audit row.
+    await tx.auditLog.create({
+      data: auditRow({
+        action: 'admin.two_factor.enabled',
+        userId,
+        metadata: { source: 'cli', sessionsClosed: closed.count },
+      }),
     });
   });
   return recoveryCodes;
