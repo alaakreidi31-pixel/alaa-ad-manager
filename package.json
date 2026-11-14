@@ -7,6 +7,7 @@
     "dev": "pnpm --filter @alaa/api --filter @alaa/web --parallel dev",
     "dev:api": "pnpm --filter @alaa/api dev",
     "dev:web": "pnpm --filter @alaa/web dev",
+    "admin:create-super-admin": "pnpm --filter @alaa/api admin:create-super-admin",
     "generate": "pnpm --filter @alaa/api prisma:generate",
     "test": "pnpm -r test",
     "test:db": "pnpm --filter @alaa/api test:db",
