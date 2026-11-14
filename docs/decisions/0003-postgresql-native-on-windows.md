@@ -18,7 +18,7 @@ Docker Desktop على Windows يحتاج WSL2، ويستهلك عدة جيجاب
 ## القرار
 
 - استخدام PostgreSQL 17 المثبّت مباشرة على Windows، وعدم تثبيت Docker أو WSL2.
-- مستخدم خاص بالمشروع `alaa_app`، بصلاحية `LOGIN` و`CREATEDB` فقط، وليس مستخدم المدير `postgres`.
+- مستخدم خاص بالمشروع `alaa_app`، وليس مستخدم المدير `postgres`. (عُدّل في 2026-11-14، انظر ADR 0009.)
 - قاعدتان يملكهما `alaa_app`: `alaa_ad_manager_dev` و`alaa_ad_manager_test`، بترميز UTF8.
 - قواعد المشروع الآخر على نفس الخادم لم تُلمس.
 
@@ -46,5 +46,6 @@ Docker Desktop على Windows يحتاج WSL2، ويستهلك عدة جيجاب
 
 ## متى نراجعه
 
-- عند تجهيز النشر: Docker مخطط لاستخدامه في GitHub Actions وعلى خادم النشر، وليس على جهاز التطوير. هذا **لم يُنفَّذ بعد**.
+- **تحديث 2026-11-14:** في GitHub Actions يعمل PostgreSQL 17 كـ service container (Docker على خوادم GitHub فقط). Docker على خادم النشر لم يُنفَّذ بعد.
+- **تحديث 2026-11-14:** القاعدتان أصبحتا ملك `alaa_migrator` بدلاً من `alaa_app`. انظر [ADR 0009](0009-database-roles-and-migrations.md).
 - إذا تغيّر جهاز التطوير إلى جهاز بمواصفات أعلى.

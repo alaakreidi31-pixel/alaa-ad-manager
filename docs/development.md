@@ -26,13 +26,29 @@
 
 ثم داخل `psql`:
 
+المشروع يستخدم مستخدمَين منفصلين. انظر [ADR 0009](decisions/0009-database-roles-and-migrations.md).
+
+- `alaa_migrator`: يملك القاعدتين، وتستخدمه أوامر Prisma فقط لتغيير البنية.
+- `alaa_app`: يستخدمه الخادم، ويقرأ البيانات ويكتبها فقط.
+
 ```sql
-CREATE ROLE alaa_app WITH LOGIN CREATEDB;
+CREATE ROLE alaa_migrator WITH LOGIN CREATEDB;
+\password alaa_migrator
+CREATE ROLE alaa_app WITH LOGIN;
 \password alaa_app
-CREATE DATABASE alaa_ad_manager_dev OWNER alaa_app;
-CREATE DATABASE alaa_ad_manager_test OWNER alaa_app;
-\q
+CREATE DATABASE alaa_ad_manager_dev OWNER alaa_migrator;
+CREATE DATABASE alaa_ad_manager_test OWNER alaa_migrator;
 ```
+
+ثم لكل قاعدة من القاعدتين (`\c alaa_ad_manager_dev` ثم `\c alaa_ad_manager_test`):
+
+```sql
+GRANT USAGE ON SCHEMA public TO alaa_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE alaa_migrator IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO alaa_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE alaa_migrator IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO alaa_app;
+```
+
+ثم `\q`.
 
 - الأمر `\password` يطلب كلمة المرور دون أن تظهر على الشاشة أو تُحفظ في سجل الأوامر.
 - يُفضّل أن تتكون كلمة المرور من أحرف إنجليزية وأرقام فقط، لأن الرموز مثل `@ : / % #` تحتاج ترميزاً خاصاً داخل رابط الاتصال.
@@ -49,7 +65,7 @@ CREATE DATABASE alaa_ad_manager_test OWNER alaa_app;
 Copy-Item "apps\api\.env.example" "apps\api\.env"
 ```
 
-ثم في `apps\api\.env` تُستبدل `CHANGE_ME` بكلمة مرور `alaa_app`.
+ثم في `apps\api\.env` تُستبدل كل `CHANGE_ME` بكلمة مرور المستخدم المذكور في نفس السطر (`alaa_app` أو `alaa_migrator`).
 
 - ملف `.env` محمي بـ `.gitignore` ولا يُحفظ في Git أبداً.
 - لا يُصوَّر ولا يُرسل ولا يُنسخ إلى التوثيق.
@@ -58,8 +74,11 @@ Copy-Item "apps\api\.env.example" "apps\api\.env"
 
 ```powershell
 pnpm install
+pnpm --filter @alaa/api exec prisma migrate deploy
 pnpm dev
 ```
+
+الأمر الثاني يطبّق الـ migrations على قاعدة التطوير بمستخدم `alaa_migrator`.
 
 ثم في المتصفح: `http://127.0.0.1:5173`
 
@@ -82,6 +101,12 @@ pnpm dev
   ```powershell
   Expand-Archive "C:\Users\<USER>\Downloads\<FILE>.zip" -DestinationPath "C:\dev\alaa-ad-manager" -Force
   ```
+
+### قواعد قاعدة البيانات
+
+- **migration جديدة:** `prisma migrate dev --create-only` أولاً، ثم مراجعة ملف SQL، ثم التطبيق.
+- **ممنوع على قاعدة التطوير** دون موافقة صاحبة المشروع: `prisma migrate reset`، وأي ملف في `prisma/rollbacks/`.
+- `pnpm test:db` و`pnpm test:rollback` يعملان على قاعدة ينتهي اسمها بـ `_test` فقط، ويرفضان غيرها.
 
 ## 3. مشاكل واجهناها وحلولها
 

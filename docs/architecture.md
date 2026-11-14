@@ -34,7 +34,18 @@
 | الهوية البصرية          | الألوان (أسود `ink` وذهبي `gold`) معرّفة في مكان واحد، وشعار نصي مؤقت                               | `apps/web/src/index.css`، `Logo.tsx`       |
 | اللغتان                 | عربي وإنجليزي مع قلب الاتجاه (RTL)                                                                 | `apps/web/src/i18n/`                       |
 
-**قاعدة البيانات لا تحتوي أي جداول بعد.** ملف `apps/api/prisma/schema.prisma` يعرّف نوع القاعدة فقط، وأول الجداول تأتي في المرحلة 1.
+## قاعدة البيانات
+
+- مستخدمان: `alaa_migrator` يملك البنية، و`alaa_app` للبيانات فقط. انظر [ADR 0009](decisions/0009-database-roles-and-migrations.md).
+- الـ migrations في `apps/api/prisma/migrations/`، وملفات التراجع في `apps/api/prisma/rollbacks/`.
+
+### جدول `users` (migration `20261114093306_create_users`)
+
+- `id` من نوع `uuid` تولّده القاعدة.
+- `email` فريد، ومحمي بشرط `users_email_normalized_check`: بلا مسافات في الطرفين، وبأحرف صغيرة، وغير فارغ. التطبيق يوحّده بـ `normalizeEmail()` قبل التخزين.
+- `full_name` و`password_hash` إلزاميان. كلمة المرور لا تُخزَّن أبداً، بل ناتج تشفيرها فقط.
+- `role`: `SUPER_ADMIN` أو `CLIENT_USER`. `status`: `ACTIVE` (افتراضي) أو `SUSPENDED`. المستخدمون لا يُحذفون، بل يُوقَفون.
+- `created_at` و`updated_at` من نوع `timestamptz(3)`.
 
 ## بنية المجلدات
 
@@ -67,17 +78,19 @@ alaa-ad-manager/
 
 تُشغَّل كلها من جذر المشروع `C:\dev\alaa-ad-manager`:
 
-| الأمر            | الوظيفة                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------- |
-| `pnpm dev`       | يشغّل الخادم والواجهة معاً في طرفية واحدة                                                  |
-| `pnpm dev:api`   | الخادم فقط                                                                               |
-| `pnpm dev:web`   | الواجهة فقط                                                                              |
-| `pnpm test`      | كل الاختبارات (Vitest)                                                                   |
-| `pnpm typecheck` | فحص TypeScript للخادم والواجهة                                                           |
-| `pnpm lint`      | فحص الجودة (ESLint)                                                                      |
-| `pnpm generate`  | توليد كود Prisma في `apps/api/src/generated`                                             |
-| `pnpm format`    | تنسيق كل الملفات (Prettier)                                                              |
-| `pnpm check`     | كل الفحوصات بالترتيب: التنسيق، ثم توليد كود Prisma، ثم الجودة، ثم الأنواع، ثم الاختبارات |
+| الأمر                | الوظيفة                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| `pnpm dev`           | يشغّل الخادم والواجهة معاً في طرفية واحدة                                                  |
+| `pnpm dev:api`       | الخادم فقط                                                                               |
+| `pnpm dev:web`       | الواجهة فقط                                                                              |
+| `pnpm test`          | كل الاختبارات (Vitest)                                                                   |
+| `pnpm typecheck`     | فحص TypeScript للخادم والواجهة                                                           |
+| `pnpm lint`          | فحص الجودة (ESLint)                                                                      |
+| `pnpm test:db`       | اختبارات على PostgreSQL الحقيقي، قاعدة `_test` فقط                                       |
+| `pnpm test:rollback` | اختبار التراجع عن الـ migrations، قاعدة `_test` فقط                                      |
+| `pnpm generate`      | توليد كود Prisma في `apps/api/src/generated`                                             |
+| `pnpm format`        | تنسيق كل الملفات (Prettier)                                                              |
+| `pnpm check`         | كل الفحوصات بالترتيب: التنسيق، ثم توليد كود Prisma، ثم الجودة، ثم الأنواع، ثم الاختبارات |
 
 ## الفحص التلقائي (CI)
 
@@ -86,16 +99,20 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (17 اختباراً)
+## الاختبارات الموجودة (39 اختباراً)
 
-| الملف                                           | العدد | ماذا يحمي                                                 |
-| ----------------------------------------------- | ----- | --------------------------------------------------------- |
-| `apps/api/src/config/env.schema.spec.ts`        | 6     | حارس الإعدادات يقبل الصحيح ويرفض الناقص أو الخاطئ         |
-| `apps/api/src/health/health.controller.spec.ts` | 2     | `/api/health` يعيد `up`، أو `down` مع 503                 |
-| `apps/web/src/lib/health.test.ts`               | 6     | الواجهة تتعامل مع كل حالات رد الخادم                      |
-| `apps/web/src/i18n/locales.test.ts`             | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ |
+| الملف                                                   | العدد | ماذا يحمي                                                             |
+| ------------------------------------------------------- | ----- | --------------------------------------------------------------------- |
+| `apps/api/src/config/env.schema.spec.ts`                | 6     | حارس الإعدادات يقبل الصحيح ويرفض الناقص أو الخاطئ                     |
+| `apps/api/src/health/health.controller.spec.ts`         | 2     | `/api/health` يعيد `up`، أو `down` مع 503                             |
+| `apps/api/src/users/email.spec.ts`                      | 4     | توحيد البريد                                                          |
+| `apps/api/src/testing/test-database.spec.ts`            | 5     | حارس قاعدة الاختبار، ولا يُظهر كلمة المرور                             |
+| `apps/api/src/users/users.db-spec.ts`                   | 12    | جدول المستخدمين على PostgreSQL الحقيقي، وأن `alaa_app` لا يغيّر البنية |
+| `apps/api/src/migrations/create-users.rollback-spec.ts` | 1     | التراجع الكامل ثم إعادة التطبيق                                       |
+| `apps/web/src/lib/health.test.ts`                       | 6     | الواجهة تتعامل مع كل حالات رد الخادم                                  |
+| `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ             |
 
-**لا توجد بعد اختبارات على قاعدة بيانات حقيقية.** قاعدة `alaa_ad_manager_test` أُنشئت لهذا الغرض لكنها غير مستخدمة حتى الآن.
+على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.
 
 ## النسخ المثبّتة فعلياً
 
@@ -121,7 +138,7 @@ alaa-ad-manager/
 
 ## ما لم يُبنَ بعد
 
-- تسجيل الدخول والصلاحيات وأي جدول في قاعدة البيانات (المرحلة 1).
+- تسجيل الدخول وتشفير كلمات المرور و2FA (بقية المرحلة 1). لا يوجد أي endpoint لتسجيل حساب جديد، وSUPER_ADMIN يُنشأ بأمر إداري فقط (الخطوة 1.2).
 - محتوى `packages/shared`: نوع `HealthResponse` معرّف حالياً في الخادم والواجهة كلٍّ على حدة، والخطة نقله إلى الحزمة المشتركة لاحقاً.
 - Docker وأي إعداد للنشر.
 - التكاملات مع Meta وGoogle وWhatsApp (مؤجلة إلى ما بعد النسخة الأساسية بقرار صاحبة المشروع).
