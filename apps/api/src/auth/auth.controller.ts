@@ -2,11 +2,8 @@ import {
   BadRequestException,
   Body,
   Controller,
-  ForbiddenException,
   Get,
   HttpCode,
-  HttpException,
-  HttpStatus,
   Post,
   Req,
   Res,
@@ -18,15 +15,7 @@ import type { AuditContext } from '../audit/audit';
 import { env } from '../config/env';
 import { AccessTokenGuard } from './access-token.guard';
 import { REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH } from './auth.constants';
-import {
-  AccountLockedError,
-  AccountSuspendedError,
-  InvalidCredentialsError,
-  InvalidLoginChallengeError,
-  InvalidSessionError,
-  InvalidTwoFactorCodeError,
-  TwoFactorSetupRequiredError,
-} from './auth.errors';
+import { toHttpError } from './auth.http-errors';
 import { LoginRateLimitGuard } from './login-rate-limit.guard';
 import { AuthService, type IssuedTokens } from './auth.service';
 import type { AuthRequest, AuthResponse, AuthenticatedRequest, CookieOptions } from './auth.types';
@@ -56,25 +45,6 @@ function cookieOptions(expires?: Date): CookieOptions {
 // Where the request came from, for the sessions and the audit log (ADR 0014).
 function requestContext(req: AuthRequest): AuditContext {
   return { ip: req.ip, userAgent: req.headers['user-agent'] };
-}
-
-// Converts expected auth failures into HTTP answers.
-function toHttpError(error: unknown): Error {
-  if (
-    error instanceof InvalidCredentialsError ||
-    error instanceof InvalidSessionError ||
-    error instanceof InvalidLoginChallengeError ||
-    error instanceof InvalidTwoFactorCodeError
-  ) {
-    return new UnauthorizedException(error.message);
-  }
-  if (error instanceof AccountLockedError) {
-    return new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);
-  }
-  if (error instanceof AccountSuspendedError || error instanceof TwoFactorSetupRequiredError) {
-    return new ForbiddenException(error.message);
-  }
-  return error instanceof Error ? error : new Error('Unexpected error');
 }
 
 @Controller('auth')

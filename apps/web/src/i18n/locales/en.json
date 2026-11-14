@@ -20,5 +20,43 @@
   },
   "footer": {
     "rights": "© {{year}} ALAA MARKETING GROUP. All rights reserved."
+  },
+  "auth": {
+    "loading": "Checking your session…",
+    "title": "Sign in",
+    "subtitle": "Access the ALAA AD MANAGER dashboard.",
+    "email": "Email",
+    "password": "Password",
+    "continue": "Continue",
+    "wait": "Please wait…",
+    "codeTitle": "Two-step verification",
+    "codeHelp": "Enter the 6-digit code shown in Google Authenticator.",
+    "recoveryHelp": "Enter one of your recovery codes. Each code works only once.",
+    "code": "Verification code",
+    "recoveryCode": "Recovery code",
+    "verify": "Verify and sign in",
+    "useRecovery": "Use a recovery code",
+    "useApp": "Use the app code",
+    "back": "Back",
+    "signOut": "Sign out",
+    "errors": {
+      "invalid_credentials": "Incorrect email or password.",
+      "invalid_session": "Your session has ended. Please sign in again.",
+      "login_step_expired": "The verification step expired. Please sign in again.",
+      "invalid_code": "The code is incorrect or was already used.",
+      "account_locked": "Too many wrong attempts. The account is locked; try again in 15 minutes.",
+      "account_suspended": "This account is suspended. Please contact the administrator.",
+      "two_factor_setup_required": "Two-step verification must be enabled for this account first.",
+      "too_many_requests": "Too many requests in a short time. Wait a minute and try again.",
+      "invalid_input": "Please fill in the required fields.",
+      "server_unreachable": "Cannot reach the server. Please try again shortly."
+    }
+  },
+  "home": {
+    "welcome": "Welcome, {{name}}",
+    "roles": {
+      "SUPER_ADMIN": "System administrator",
+      "CLIENT_USER": "Client"
+    }
   }
 }

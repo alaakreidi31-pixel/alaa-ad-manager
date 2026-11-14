@@ -1,7 +1,12 @@
 import { useTranslation } from 'react-i18next';
+import { Navigate, Route, Routes } from 'react-router';
+import { AuthProvider } from './auth/auth-context';
+import { GuestOnly, RequireAuth } from './auth/route-guards';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { Logo } from './components/Logo';
-import { SystemStatus } from './components/SystemStatus';
+import { UserMenu } from './components/UserMenu';
+import { HomePage } from './pages/HomePage';
+import { LoginPage } from './pages/LoginPage';
 
 // Layout uses logical spacing (ps/pe/ms/me, text-start) instead of left/right,
 // so the whole page flips correctly between English (LTR) and Arabic (RTL).
@@ -9,23 +14,44 @@ export function App() {
   const { t } = useTranslation();
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-ink-700 bg-ink-900/80">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4 sm:px-6">
-          <Logo />
-          <div className="ms-auto">
-            <LanguageSwitcher />
+    <AuthProvider>
+      <div className="flex min-h-screen flex-col">
+        <header className="border-b border-ink-700 bg-ink-900/80">
+          <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-4 sm:px-6">
+            <Logo />
+            <div className="ms-auto flex items-center gap-3">
+              <UserMenu />
+              <LanguageSwitcher />
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6">
-        <SystemStatus />
-      </main>
+        <main className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6">
+          <Routes>
+            <Route
+              path="/login"
+              element={
+                <GuestOnly>
+                  <LoginPage />
+                </GuestOnly>
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <RequireAuth>
+                  <HomePage />
+                </RequireAuth>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
 
-      <footer className="border-t border-ink-700 px-4 py-4 text-center text-xs text-ink-400">
-        {t('footer.rights', { year: new Date().getFullYear() })}
-      </footer>
-    </div>
+        <footer className="border-t border-ink-700 px-4 py-4 text-center text-xs text-ink-400">
+          {t('footer.rights', { year: new Date().getFullYear() })}
+        </footer>
+      </div>
+    </AuthProvider>
   );
 }

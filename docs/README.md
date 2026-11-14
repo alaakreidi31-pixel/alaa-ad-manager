@@ -40,6 +40,7 @@
 | [0012](decisions/0012-brute-force-protection.md)        | الحماية من التخمين: قفل الحساب وحد لكل IP          | منفّذ               |
 | [0013](decisions/0013-two-factor-authentication.md)     | التحقق بخطوتين (2FA) إلزامي لحساب SUPER_ADMIN      | منفّذ               |
 | [0014](decisions/0014-audit-log.md)                     | سجل التدقيق للأحداث الأمنية، للإضافة فقط           | منفّذ               |
+| [0015](decisions/0015-web-session-and-routing.md)       | الجلسة في الواجهة، والتنقل بـ React Router 7       | منفّذ               |
 
 ## قاعدة أمان لهذا المجلد
 
