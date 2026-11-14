@@ -49,8 +49,18 @@
       "two_factor_setup_required": "Two-step verification must be enabled for this account first.",
       "too_many_requests": "Too many requests in a short time. Wait a minute and try again.",
       "invalid_input": "Please fill in the required fields.",
-      "server_unreachable": "Cannot reach the server. Please try again shortly."
-    }
+      "server_unreachable": "Cannot reach the server. Please try again shortly.",
+      "client_inactive": "Your company account is not active. Please contact the agency.",
+      "password_change_expired": "The password change step expired. Please sign in again with the temporary password.",
+      "weak_password": "The new password must be at least 12 characters long.",
+      "password_reused": "Choose a password different from the temporary one.",
+      "password_mismatch": "The two passwords do not match."
+    },
+    "newPasswordTitle": "Choose a new password",
+    "newPasswordHelp": "You signed in with a temporary password. Choose your own password of at least 12 characters.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm the new password",
+    "savePassword": "Save and continue"
   },
   "home": {
     "welcome": "Welcome, {{name}}",

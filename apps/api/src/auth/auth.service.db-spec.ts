@@ -36,6 +36,15 @@ const auth = new AuthService(prisma as unknown as PrismaService, jwt, box, audit
 
 const PASSWORD = 'a long enough password';
 let passwordHash: string;
+// Every CLIENT_USER belongs to a client (ADR 0016). Clients cannot be deleted,
+// so this file creates its own once.
+let testClientId: string | undefined;
+async function clientId(): Promise<string> {
+  testClientId ??= (
+    await prisma.client.create({ data: { name: `Auth tests ${randomBytes(4).toString('hex')}` } })
+  ).id;
+  return testClientId;
+}
 
 // A client account (no 2FA needed). The SUPER_ADMIN cases are in the
 // "two-factor authentication" tests below.
@@ -51,6 +60,7 @@ async function createUser(
       passwordHash,
       role,
       status,
+      clientId: role === 'CLIENT_USER' ? await clientId() : null,
     },
   });
 }
@@ -88,6 +98,7 @@ describe('AuthService (real PostgreSQL, test database)', () => {
         email: 'owner@alaa.test',
         fullName: 'Alaa Owner',
         role: 'CLIENT_USER',
+        clientId: user.clientId,
       });
       const sessions = await prisma.session.findMany();
       expect(sessions).toHaveLength(1);

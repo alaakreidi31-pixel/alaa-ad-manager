@@ -52,9 +52,16 @@ model User {
   totpEnabledAt       DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
   // Time step of the last accepted code: the same code is never accepted twice.
   totpLastUsedStep    Int?      @map("totp_last_used_step")
+  // Client accounts (ADR 0016): every CLIENT_USER belongs to exactly ONE
+  // client; a SUPER_ADMIN to none (CHECK constraint in the migration).
+  clientId           String?  @map("client_id") @db.Uuid
+  client             Client?  @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  // Set for a temporary password: no session until a new password is chosen.
+  mustChangePassword Boolean  @default(false) @map("must_change_password")
   sessions      Session[]
   recoveryCodes RecoveryCode[]
 
+  @@index([clientId])
   @@map("users")
 }
 
@@ -147,6 +154,8 @@ model Client {
   internalNotes    String?      @map("internal_notes")
   createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  // Login accounts of this client (step 2.2)
+  users            User[]
 
   @@index([status, createdAt])
   @@map("clients")

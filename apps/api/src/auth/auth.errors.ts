@@ -50,3 +50,31 @@ export class InvalidTwoFactorCodeError extends Error {
     super('Invalid verification code');
   }
 }
+
+// The account belongs to a client that is SUSPENDED or ARCHIVED (ADR 0016).
+export class ClientInactiveError extends Error {
+  constructor() {
+    super('This client account is not active. Please contact the agency.');
+  }
+}
+
+// The step "choose a new password" is missing, invalid, expired or already done.
+export class InvalidPasswordChangeError extends Error {
+  constructor() {
+    super('This step has expired. Please sign in again.');
+  }
+}
+
+// The new password does not follow the password policy.
+export class WeakPasswordError extends Error {
+  constructor(readonly reason: string) {
+    super(`The new password ${reason}`);
+  }
+}
+
+// The new password is the same as the temporary one.
+export class PasswordReusedError extends Error {
+  constructor() {
+    super('The new password must be different from the temporary password');
+  }
+}

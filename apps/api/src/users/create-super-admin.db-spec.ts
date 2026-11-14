@@ -70,6 +70,8 @@ describe('createSuperAdmin (real PostgreSQL, test database)', () => {
         fullName: 'Existing Client',
         passwordHash: 'not-a-real-hash',
         role: 'CLIENT_USER',
+        // Every CLIENT_USER belongs to a client (ADR 0016)
+        client: { create: { name: `Existing client ${Date.now()}` } },
       },
     });
     await expect(createSuperAdmin(prisma, VALID)).rejects.toThrow(/already exists/);

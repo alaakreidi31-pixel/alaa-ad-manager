@@ -23,3 +23,7 @@ export const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 export const LOGIN_CHALLENGE_TTL_SECONDS = 5 * 60;
 // Name shown in the authenticator app.
 export const TOTP_ISSUER = 'ALAA AD MANAGER';
+
+// Temporary passwords (ADR 0016): after one, the user must choose a new
+// password within this time before any session is opened.
+export const PASSWORD_CHANGE_TTL_SECONDS = 10 * 60;

@@ -26,7 +26,14 @@ export type AuditAction =
   // Client management (ADR 0016). The admin is userId, the client is metadata.clientId.
   | 'admin.client.created'
   | 'admin.client.updated'
-  | 'admin.client.status_changed';
+  | 'admin.client.status_changed'
+  // Client login accounts (ADR 0016). Temporary passwords are NEVER logged.
+  | 'admin.client_user.created'
+  | 'admin.client_user.password_reset'
+  | 'admin.client_user.status_changed'
+  // Correct temporary password: the user must now choose a new one.
+  | 'auth.login.password_change_required'
+  | 'auth.password.changed';
 
 export type AuditMetadata = Record<string, string | number | boolean | null>;
 

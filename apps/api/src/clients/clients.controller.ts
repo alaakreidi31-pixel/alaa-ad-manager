@@ -3,8 +3,6 @@ import {
   Controller,
   Get,
   HttpCode,
-  HttpException,
-  HttpStatus,
   Inject,
   Param,
   Patch,
@@ -16,55 +14,8 @@ import {
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import type { AuthenticatedRequest } from '../auth/auth.types';
 import { SuperAdminGuard } from '../auth/super-admin.guard';
-import {
-  ClientArchivedError,
-  ClientNotFoundError,
-  ClientValidationError,
-  InvalidClientStatusChangeError,
-} from './clients.errors';
-import { ClientsService, type Actor, type StatusAction } from './clients.service';
-
-// Turns expected failures into HTTP answers with a stable "code" for the web app.
-function toHttpError(error: unknown): Error {
-  if (error instanceof ClientValidationError) {
-    return new HttpException(
-      { statusCode: 400, message: error.message, code: 'invalid_input', fields: error.fields },
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-  if (error instanceof ClientNotFoundError) {
-    return new HttpException(
-      { statusCode: 404, message: error.message, code: 'client_not_found' },
-      HttpStatus.NOT_FOUND,
-    );
-  }
-  if (error instanceof ClientArchivedError) {
-    return new HttpException(
-      { statusCode: 409, message: error.message, code: 'client_archived' },
-      HttpStatus.CONFLICT,
-    );
-  }
-  if (error instanceof InvalidClientStatusChangeError) {
-    return new HttpException(
-      { statusCode: 409, message: error.message, code: 'invalid_status_change' },
-      HttpStatus.CONFLICT,
-    );
-  }
-  return error instanceof Error ? error : new Error('Unexpected error');
-}
-
-function actorOf(req: AuthenticatedRequest): Actor {
-  // AccessTokenGuard always sets req.auth before this runs.
-  return { userId: req.auth?.id ?? '', ip: req.ip, userAgent: req.headers['user-agent'] };
-}
-
-async function run<T>(work: () => Promise<T>): Promise<T> {
-  try {
-    return await work();
-  } catch (error) {
-    throw toHttpError(error);
-  }
-}
+import { actorOf, run } from './clients.http';
+import { ClientsService, type StatusAction } from './clients.service';
 
 // Client management: /api/admin/clients. SUPER_ADMIN only (ADR 0016).
 // The guards run on EVERY route of this controller, in this order:

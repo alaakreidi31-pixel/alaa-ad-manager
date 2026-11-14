@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   AccountLockedError,
   AccountSuspendedError,
+  ClientInactiveError,
   InvalidCredentialsError,
+  InvalidPasswordChangeError,
+  PasswordReusedError,
+  WeakPasswordError,
   InvalidLoginChallengeError,
   InvalidTwoFactorCodeError,
   RefreshTokenReuseError,
@@ -29,6 +33,10 @@ describe('toHttpError (auth errors to HTTP answers)', () => {
     [new AccountLockedError(), 429, 'account_locked'],
     [new AccountSuspendedError(), 403, 'account_suspended'],
     [new TwoFactorSetupRequiredError(), 403, 'two_factor_setup_required'],
+    [new ClientInactiveError(), 403, 'client_inactive'],
+    [new InvalidPasswordChangeError(), 401, 'password_change_expired'],
+    [new WeakPasswordError('is too short'), 400, 'weak_password'],
+    [new PasswordReusedError(), 400, 'password_reused'],
   ])('%s -> HTTP %i with code "%s"', (error, status, code) => {
     const result = answer(error);
     expect(result.status).toBe(status);

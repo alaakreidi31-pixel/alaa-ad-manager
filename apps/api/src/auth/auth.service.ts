@@ -6,23 +6,28 @@ import { AuditService } from '../audit/audit.service';
 import type { UserRole } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeEmail } from '../users/email';
-import { hashPassword, verifyPassword } from './password';
+import { hashPassword, PasswordSchema, verifyPassword } from './password';
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   LOGIN_CHALLENGE_TTL_SECONDS,
   LOCKOUT_DURATION_MS,
   MAX_FAILED_LOGIN_ATTEMPTS,
+  PASSWORD_CHANGE_TTL_SECONDS,
   REFRESH_TOKEN_TTL_MS,
 } from './auth.constants';
 import {
   AccountLockedError,
   AccountSuspendedError,
+  ClientInactiveError,
   InvalidCredentialsError,
   InvalidLoginChallengeError,
+  InvalidPasswordChangeError,
   InvalidSessionError,
   InvalidTwoFactorCodeError,
+  PasswordReusedError,
   RefreshTokenReuseError,
   TwoFactorSetupRequiredError,
+  WeakPasswordError,
 } from './auth.errors';
 import { hashRecoveryCode, isRecoveryCodeFormat, normalizeRecoveryCode } from './recovery-codes';
 import { SecretBox } from './secret-box';
@@ -35,20 +40,34 @@ export interface AccessTokenPayload {
   role: UserRole;
 }
 
-// Short-lived token proving the password step succeeded (ADR 0013).
-// It has no "sid", so it can never be used as an access token.
+// Short-lived "step" tokens: { sub: userId, purpose }. They have no "sid", so
+// they can never be used as an access token, and each purpose is accepted
+// only by its own step.
+// - after the password, waiting for the 2FA code (ADR 0013)
 const LOGIN_CHALLENGE_PURPOSE = 'two_factor_login';
-interface LoginChallengePayload {
-  sub: string;
-  purpose: typeof LOGIN_CHALLENGE_PURPOSE;
-}
+// - after a temporary password, waiting for the new password (ADR 0016)
+const PASSWORD_CHANGE_PURPOSE = 'password_change';
+type StepPurpose = typeof LOGIN_CHALLENGE_PURPOSE | typeof PASSWORD_CHANGE_PURPOSE;
 
 export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
   role: UserRole;
+  // The client this account belongs to (CLIENT_USER), or null (SUPER_ADMIN).
+  clientId: string | null;
 }
+
+// Account fields needed by the login checks.
+interface LoginUser extends AuthUser {
+  status: string;
+  lockedUntil: Date | null;
+  failedLoginAttempts: number;
+  mustChangePassword: boolean;
+  totpEnabledAt: Date | null;
+  client: { status: string } | null;
+}
+const WITH_CLIENT_STATUS = { client: { select: { status: true } } } as const;
 
 export interface IssuedTokens {
   accessToken: string;
@@ -60,9 +79,21 @@ export interface IssuedTokens {
 
 export type LoginResult =
   | { status: 'authenticated'; tokens: IssuedTokens }
-  | { status: 'two_factor_required'; challengeToken: string; expiresIn: number };
+  | { status: 'two_factor_required'; challengeToken: string; expiresIn: number }
+  | { status: 'password_change_required'; changeToken: string; expiresIn: number };
 
-const AUTH_USER_FIELDS = { id: true, email: true, fullName: true, role: true } as const;
+const AUTH_USER_FIELDS = {
+  id: true,
+  email: true,
+  fullName: true,
+  role: true,
+  clientId: true,
+} as const;
+
+// A client account works only while its client is ACTIVE (ADR 0016).
+function clientInactive(user: { client: { status: string } | null }): boolean {
+  return user.client !== null && user.client.status !== 'ACTIVE';
+}
 
 @Injectable()
 export class AuthService {
@@ -82,7 +113,10 @@ export class AuthService {
   // Every outcome is written to the audit log (ADR 0014).
   async login(email: string, password: string, ctx: AuditContext = {}): Promise<LoginResult> {
     const normalizedEmail = normalizeEmail(email);
-    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      include: WITH_CLIENT_STATUS,
+    });
 
     if (!user) {
       this.dummyHash ??= hashPassword(randomBytes(16).toString('hex'));
@@ -116,15 +150,50 @@ export class AuthService {
       await fail('account_suspended');
       throw new AccountSuspendedError();
     }
+    if (clientInactive(user)) {
+      await fail('client_inactive');
+      throw new ClientInactiveError();
+    }
 
+    // Temporary password (ADR 0016): no session until a new password is chosen.
+    // The failure counter is not reset yet (same reason as for 2FA below).
+    if (user.mustChangePassword) {
+      const changeToken = await this.signStepToken(
+        user.id,
+        PASSWORD_CHANGE_PURPOSE,
+        PASSWORD_CHANGE_TTL_SECONDS,
+      );
+      await this.audit.record({
+        ...ctx,
+        action: 'auth.login.password_change_required',
+        userId: user.id,
+      });
+      return {
+        status: 'password_change_required',
+        changeToken,
+        expiresIn: PASSWORD_CHANGE_TTL_SECONDS,
+      };
+    }
+
+    return this.finishPasswordStep(user, ctx, 'password');
+  }
+
+  // After a correct password (or a new password): the 2FA step when enabled,
+  // otherwise the session.
+  private async finishPasswordStep(
+    user: LoginUser,
+    ctx: AuditContext,
+    method: 'password' | 'password_change',
+  ): Promise<LoginResult> {
     // With 2FA, the failure counter is NOT reset here: otherwise someone who
     // knows the password could guess codes forever (4 wrong codes, correct
     // password, 4 wrong codes...). It is reset only after the second step.
     if (user.totpEnabledAt) {
-      const payload: LoginChallengePayload = { sub: user.id, purpose: LOGIN_CHALLENGE_PURPOSE };
-      const challengeToken = await this.jwt.signAsync(payload, {
-        expiresIn: LOGIN_CHALLENGE_TTL_SECONDS,
-      });
+      const challengeToken = await this.signStepToken(
+        user.id,
+        LOGIN_CHALLENGE_PURPOSE,
+        LOGIN_CHALLENGE_TTL_SECONDS,
+      );
       await this.audit.record({ ...ctx, action: 'auth.login.password_verified', userId: user.id });
       return {
         status: 'two_factor_required',
@@ -133,7 +202,12 @@ export class AuthService {
       };
     }
     if (user.role === 'SUPER_ADMIN') {
-      await fail('two_factor_setup_required');
+      await this.audit.record({
+        ...ctx,
+        action: 'auth.login.failed',
+        userId: user.id,
+        metadata: { reason: 'two_factor_setup_required' },
+      });
       throw new TwoFactorSetupRequiredError();
     }
 
@@ -143,9 +217,70 @@ export class AuthService {
       ...ctx,
       action: 'auth.login.succeeded',
       userId: user.id,
-      metadata: { method: 'password' },
+      metadata: { method },
     });
     return { status: 'authenticated', tokens };
+  }
+
+  // After a temporary password: the user chooses a new password (ADR 0016).
+  // Works once (the change is conditional on must_change_password), closes
+  // every other session, then continues like a normal login (2FA if enabled).
+  async completePasswordChange(
+    changeToken: string,
+    newPassword: string,
+    ctx: AuditContext = {},
+  ): Promise<LoginResult> {
+    const userId = await this.readStepToken(changeToken, PASSWORD_CHANGE_PURPOSE);
+    const user = userId
+      ? await this.prisma.user.findUnique({ where: { id: userId }, include: WITH_CLIENT_STATUS })
+      : null;
+    if (!user?.mustChangePassword) throw new InvalidPasswordChangeError();
+    if (user.lockedUntil && user.lockedUntil > new Date()) throw new AccountLockedError();
+    if (user.status !== 'ACTIVE') throw new AccountSuspendedError();
+    if (clientInactive(user)) throw new ClientInactiveError();
+
+    const policy = PasswordSchema.safeParse(newPassword);
+    if (!policy.success) {
+      throw new WeakPasswordError(policy.error.issues[0]?.message ?? 'is not valid');
+    }
+    if (await verifyPassword(user.passwordHash, newPassword)) throw new PasswordReusedError();
+
+    const passwordHash = await hashPassword(newPassword);
+    const changed = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.user.updateMany({
+        where: { id: user.id, mustChangePassword: true },
+        data: { passwordHash, mustChangePassword: false },
+      });
+      if (updated.count !== 1) return false;
+      await tx.session.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      return true;
+    });
+    if (!changed) throw new InvalidPasswordChangeError();
+
+    await this.audit.record({
+      ...ctx,
+      action: 'auth.password.changed',
+      userId: user.id,
+      metadata: { reason: 'temporary_password' },
+    });
+    return this.finishPasswordStep({ ...user, mustChangePassword: false }, ctx, 'password_change');
+  }
+
+  private signStepToken(userId: string, purpose: StepPurpose, ttlSeconds: number) {
+    return this.jwt.signAsync({ sub: userId, purpose }, { expiresIn: ttlSeconds });
+  }
+
+  // Returns the user id, or null for an invalid, expired or other-purpose token.
+  private async readStepToken(token: string, purpose: StepPurpose): Promise<string | null> {
+    try {
+      const payload = await this.jwt.verifyAsync<{ sub?: unknown; purpose?: unknown }>(token);
+      return payload.purpose === purpose && typeof payload.sub === 'string' ? payload.sub : null;
+    } catch {
+      return null;
+    }
   }
 
   // Step 2: a code from the authenticator app, or a one-time recovery code.
@@ -154,13 +289,8 @@ export class AuthService {
     code: string,
     ctx: AuditContext = {},
   ): Promise<IssuedTokens> {
-    let payload: LoginChallengePayload | undefined;
-    try {
-      payload = await this.jwt.verifyAsync<LoginChallengePayload>(challengeToken);
-    } catch {
-      payload = undefined;
-    }
-    if (payload?.purpose !== LOGIN_CHALLENGE_PURPOSE || typeof payload.sub !== 'string') {
+    const userId = await this.readStepToken(challengeToken, LOGIN_CHALLENGE_PURPOSE);
+    if (!userId) {
       await this.audit.record({
         ...ctx,
         action: 'auth.two_factor.failed',
@@ -169,8 +299,13 @@ export class AuthService {
       throw new InvalidLoginChallengeError();
     }
 
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user?.totpSecretEncrypted) throw new InvalidLoginChallengeError();
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: WITH_CLIENT_STATUS,
+    });
+    if (!user?.totpSecretEncrypted || user.mustChangePassword) {
+      throw new InvalidLoginChallengeError();
+    }
     const fail = (reason: string) =>
       this.audit.record({
         ...ctx,
@@ -186,6 +321,10 @@ export class AuthService {
     if (user.status !== 'ACTIVE') {
       await fail('account_suspended');
       throw new AccountSuspendedError();
+    }
+    if (clientInactive(user)) {
+      await fail('client_inactive');
+      throw new ClientInactiveError();
     }
 
     const method = await this.consumeSecondFactor(user.id, user.totpSecretEncrypted, code);
@@ -282,7 +421,7 @@ export class AuthService {
     const now = new Date();
     const session = await this.prisma.session.findUnique({
       where: { refreshTokenHash: hashRefreshToken(refreshToken) },
-      include: { user: true },
+      include: { user: { include: WITH_CLIENT_STATUS } },
     });
 
     if (!session) throw new InvalidSessionError();
@@ -295,6 +434,10 @@ export class AuthService {
     if (session.user.status !== 'ACTIVE') {
       await this.revokeAllSessions(session.userId);
       throw new AccountSuspendedError();
+    }
+    if (clientInactive(session.user)) {
+      await this.revokeAllSessions(session.userId);
+      throw new ClientInactiveError();
     }
 
     const refreshTokenValue = generateRefreshToken();
@@ -366,20 +509,33 @@ export class AuthService {
 
     const session = await this.prisma.session.findUnique({
       where: { id: payload.sid },
-      include: { user: { select: { ...AUTH_USER_FIELDS, status: true } } },
+      include: {
+        user: {
+          select: {
+            ...AUTH_USER_FIELDS,
+            status: true,
+            mustChangePassword: true,
+            ...WITH_CLIENT_STATUS,
+          },
+        },
+      },
     });
+    // Checked on EVERY request: logout, suspension of the account, and
+    // suspension or archiving of its client all apply immediately.
     if (
       !session ||
       session.userId !== payload.sub ||
       session.revokedAt ||
       session.expiresAt <= new Date() ||
-      session.user.status !== 'ACTIVE'
+      session.user.status !== 'ACTIVE' ||
+      session.user.mustChangePassword ||
+      clientInactive(session.user)
     ) {
       throw new InvalidSessionError();
     }
 
-    const { id, email, fullName, role } = session.user;
-    return { id, email, fullName, role, sessionId: session.id };
+    const { id, email, fullName, role, clientId } = session.user;
+    return { id, email, fullName, role, clientId, sessionId: session.id };
   }
 
   private async revokeAllSessions(userId: string): Promise<void> {
@@ -418,7 +574,13 @@ export class AuthService {
       accessTokenExpiresIn: ACCESS_TOKEN_TTL_SECONDS,
       refreshToken,
       refreshTokenExpiresAt,
-      user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role },
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        clientId: user.clientId,
+      },
     };
   }
 }

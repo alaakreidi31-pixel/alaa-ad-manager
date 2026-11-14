@@ -1,6 +1,6 @@
 # البنية الحالية للنظام
 
-> هذا الملف يصف ما هو **موجود فعلاً** في الكود حتى نهاية الخطوة 2.1. ما لم يُبنَ بعد مذكور صراحةً في القسم الأخير.
+> هذا الملف يصف ما هو **موجود فعلاً** في الكود حتى نهاية الخطوة 2.2. ما لم يُبنَ بعد مذكور صراحةً في القسم الأخير.
 
 ## الصورة العامة
 
@@ -48,15 +48,28 @@
 
 كلها لـ `SUPER_ADMIN` فقط (`AccessTokenGuard` ثم `SuperAdminGuard`). حساب العميل يحصل على 403.
 
-| النقطة                                 | الوظيفة                                         |
-| -------------------------------------- | ----------------------------------------------- |
-| `GET /api/admin/clients`               | القائمة: `search` و`status` و`page` و`pageSize` |
-| `POST /api/admin/clients`              | إضافة عميل                                      |
-| `GET /api/admin/clients/:id`           | تفاصيل عميل                                     |
-| `PATCH /api/admin/clients/:id`         | تعديل (مرفوض للعميل المؤرشف)                    |
-| `POST /api/admin/clients/:id/suspend`  | إيقاف مؤقت                                      |
-| `POST /api/admin/clients/:id/archive`  | أرشفة                                           |
-| `POST /api/admin/clients/:id/activate` | إعادة تفعيل                                     |
+| النقطة                                                     | الوظيفة                                            |
+| ---------------------------------------------------------- | -------------------------------------------------- |
+| `GET /api/admin/clients`                                   | القائمة: `search` و`status` و`page` و`pageSize`    |
+| `POST /api/admin/clients`                                  | إضافة عميل                                         |
+| `GET /api/admin/clients/:id`                               | تفاصيل عميل                                        |
+| `PATCH /api/admin/clients/:id`                             | تعديل (مرفوض للعميل المؤرشف)                       |
+| `POST /api/admin/clients/:id/suspend`                      | إيقاف مؤقت                                         |
+| `POST /api/admin/clients/:id/archive`                      | أرشفة                                              |
+| `POST /api/admin/clients/:id/activate`                     | إعادة تفعيل                                        |
+| `GET /api/admin/clients/:id/users`                         | حسابات دخول العميل                                 |
+| `POST /api/admin/clients/:id/users`                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة |
+| `POST /api/admin/clients/:id/users/:userId/reset-password` | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب       |
+| `POST /api/admin/clients/:id/users/:userId/suspend`        | إيقاف حساب واحد                                    |
+| `POST /api/admin/clients/:id/users/:userId/activate`       | إعادة تفعيل حساب                                   |
+
+## بوابة العميل (`/api/client`)
+
+لحسابات `CLIENT_USER` فقط (`AccessTokenGuard` ثم `ClientUserGuard`). **لا يقبل أي مسار رقم عميل من الطلب**: العميل يُؤخذ من الجلسة دائماً.
+
+| النقطة                    | الوظيفة                                     |
+| ------------------------- | ------------------------------------------- |
+| `GET /api/client/profile` | بيانات شركة العميل، بدون الملاحظات الداخلية |
 
 ## قاعدة البيانات
 
@@ -71,13 +84,14 @@
 
 ## تسجيل الدخول (`/api/auth`)
 
-| النقطة                      | الوظيفة                                                                 |
-| --------------------------- | ----------------------------------------------------------------------- |
-| `POST /api/auth/login`      | بريد وكلمة مرور ← Access Token في الرد، وRefresh Token في cookie        |
-| `POST /api/auth/refresh`    | يستبدل الـ refresh token بآخر جديد (rotation)، ويعطي Access Token جديداً |
-| `POST /api/auth/logout`     | يلغي الجلسة ويحذف الـ cookie                                            |
-| `GET /api/auth/me`          | بيانات المستخدم الحالي، ويتطلب `Authorization: Bearer`                  |
-| `POST /api/auth/2fa/verify` | الخطوة الثانية: التذكرة المؤقتة مع رمز التطبيق أو رمز احتياطي ← الجلسة  |
+| النقطة                           | الوظيفة                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| `POST /api/auth/login`           | بريد وكلمة مرور ← Access Token في الرد، وRefresh Token في cookie        |
+| `POST /api/auth/refresh`         | يستبدل الـ refresh token بآخر جديد (rotation)، ويعطي Access Token جديداً |
+| `POST /api/auth/logout`          | يلغي الجلسة ويحذف الـ cookie                                            |
+| `GET /api/auth/me`               | بيانات المستخدم الحالي، ويتطلب `Authorization: Bearer`                  |
+| `POST /api/auth/2fa/verify`      | الخطوة الثانية: التذكرة المؤقتة مع رمز التطبيق أو رمز احتياطي ← الجلسة  |
+| `POST /api/auth/password/change` | بعد كلمة مرور مؤقتة: كلمة المرور الجديدة ← الجلسة (أو خطوة 2FA)         |
 
 التفاصيل والأسباب في [ADR 0011](decisions/0011-sessions-and-tokens.md).
 
@@ -164,7 +178,7 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (210 اختبارات)
+## الاختبارات الموجودة (246 اختباراً)
 
 | الملف                                                   | العدد | ماذا يحمي                                                                                   |
 | ------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
@@ -178,18 +192,22 @@ alaa-ad-manager/
 | `apps/api/src/audit/audit.db-spec.ts`                   | 5     | سجل التدقيق: `alaa_app` يضيف ويقرأ فقط، ولا يعدّل ولا يحذف                                   |
 | `apps/api/src/auth/tokens.spec.ts`                      | 9     | توليد الرموز وبصمتها، وقراءة الـ cookie والـ Bearer                                         |
 | `apps/api/src/auth/auth.service.db-spec.ts`             | 48    | الدخول، والتجديد، واكتشاف الرمز المسروق، والخروج، والإيقاف، وقفل الحساب، و2FA، وسجل التدقيق |
-| `apps/api/src/auth/auth.http-errors.spec.ts`            | 8     | كل خطأ دخول يصل إلى الواجهة برمز HTTP ورمز `code` ثابت                                      |
+| `apps/api/src/auth/auth.http-errors.spec.ts`            | 12    | كل خطأ دخول يصل إلى الواجهة برمز HTTP ورمز `code` ثابت                                      |
 | `apps/api/src/auth/totp.spec.ts`                        | 15    | خوارزمية TOTP على متجهات RFC 6238 الرسمية، وBase32، ورابط QR                                |
 | `apps/api/src/auth/secret-box.spec.ts`                  | 6     | تشفير AES-256-GCM: رفض القيمة المعدّلة والمفتاح الخاطئ                                       |
 | `apps/api/src/auth/recovery-codes.spec.ts`              | 4     | الرموز الاحتياطية: الصيغة، والتخزين كـ hash فقط                                             |
 | `apps/api/src/auth/rate-limiter.spec.ts`                | 5     | حد الطلبات لكل IP                                                                           |
 | `apps/api/src/migrations/create-users.rollback-spec.ts` | 2     | لكل migration ملف تراجع، والتراجع عن الكل ثم إعادة التطبيق                                  |
 | `apps/web/src/lib/health.test.ts`                       | 6     | الواجهة تتعامل مع كل حالات رد الخادم                                                        |
-| `apps/web/src/lib/auth-api.test.ts`                     | 8     | الدخول، والخطوة الثانية، وترجمة رموز الأخطاء، وطلب تجديد واحد فقط في كل لحظة                |
+| `apps/web/src/lib/auth-api.test.ts`                     | 10    | الدخول، والخطوة الثانية، وترجمة رموز الأخطاء، وطلب تجديد واحد فقط في كل لحظة                |
 | `apps/api/src/auth/super-admin.guard.spec.ts`           | 3     | مسارات الإدارة لـ `SUPER_ADMIN` فقط                                                         |
 | `apps/api/src/clients/clients.schemas.spec.ts`          | 14    | التحقق من بيانات العميل وتوحيدها                                                            |
 | `apps/api/src/clients/clients.service.db-spec.ts`       | 16    | إدارة العملاء، والأرشفة، وسجل التدقيق، ومنع الحذف من قاعدة البيانات                         |
 | `apps/api/src/clients/clients.http.db-spec.ts`          | 7     | عبر HTTP حقيقي: 401 بلا token، و403 لحساب العميل على كل مسار إداري، و404 للمعرّفات الخاطئة   |
+| `apps/api/src/auth/temporary-password.spec.ts`          | 3     | كلمات المرور المؤقتة: الصيغة والقوة والعشوائية                                              |
+| `apps/api/src/auth/client-user.guard.spec.ts`           | 3     | بوابة العميل لحسابات `CLIENT_USER` فقط                                                      |
+| `apps/api/src/clients/client-accounts.db-spec.ts`       | 17    | حسابات العملاء: كلمة المرور المؤقتة، والتغيير الإجباري، وإيقاف العميل وأرشفته، وIDOR        |
+| `apps/api/src/clients/client-portal.http.db-spec.ts`    | 7     | عبر HTTP: كل عميل يرى بياناته فقط، بلا ملاحظات داخلية، وIDOR بين عميلين                     |
 | `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                   |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.

@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AuthApiError, login, logout, refreshSession, verifyTwoFactor } from './auth-api';
+import {
+  AuthApiError,
+  changeTemporaryPassword,
+  login,
+  logout,
+  refreshSession,
+  verifyTwoFactor,
+} from './auth-api';
 
 const user = { id: 'u1', email: 'owner@alaa.test', fullName: 'Alaa', role: 'SUPER_ADMIN' };
 const sessionBody = { status: 'authenticated', accessToken: 'access', expiresIn: 900, user };
@@ -69,6 +76,30 @@ describe('auth API client', () => {
     expect(await codeOf(login('a@b.c', 'x'))).toBe('too_many_requests');
     expect(await codeOf(login('a@b.c', 'x'))).toBe('server_unreachable');
     expect(await codeOf(login('a@b.c', 'x'))).toBe('server_unreachable');
+  });
+
+  it('a temporary password leads to the "new password" step', async () => {
+    mockFetch(() =>
+      reply({ status: 'password_change_required', changeToken: 'change', expiresIn: 600 }),
+    );
+    await expect(login('client@alaa.test', 'temporary')).resolves.toEqual({
+      status: 'password_change_required',
+      changeToken: 'change',
+      expiresIn: 600,
+    });
+  });
+
+  it('the new password is sent with the change token', async () => {
+    const fetchMock = mockFetch(() => reply(sessionBody));
+    await expect(changeTemporaryPassword('change', 'my new password')).resolves.toMatchObject({
+      status: 'authenticated',
+    });
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe('/api/auth/password/change');
+    expect(JSON.parse(init?.body as string)).toEqual({
+      changeToken: 'change',
+      newPassword: 'my new password',
+    });
   });
 
   it('second step sends the challenge and the code', async () => {

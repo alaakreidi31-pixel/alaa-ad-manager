@@ -186,11 +186,27 @@ export class ClientsService {
         where: { id: current.id },
         data: { status: transition.to },
       });
+      // Suspended or archived: every open session of its accounts ends NOW
+      // (and new logins are refused, ADR 0016).
+      const sessionsClosed =
+        transition.to === 'ACTIVE'
+          ? 0
+          : (
+              await tx.session.updateMany({
+                where: { revokedAt: null, user: { clientId: current.id } },
+                data: { revokedAt: new Date() },
+              })
+            ).count;
       await tx.auditLog.create({
         data: auditRow({
           ...actor,
           action: 'admin.client.status_changed',
-          metadata: { clientId: client.id, from: current.status, to: transition.to },
+          metadata: {
+            clientId: client.id,
+            from: current.status,
+            to: transition.to,
+            sessionsClosed,
+          },
         }),
       });
       return toAdminClient(client);

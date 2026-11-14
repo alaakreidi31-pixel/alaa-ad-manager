@@ -2,101 +2,39 @@
 // They check what a browser (or an attacker) actually gets back:
 // - no token: 401; a CLIENT_USER token: 403 on EVERY admin route;
 // - ids that are not UUIDs, or belong to nothing: 404 (no database error).
-import { Module, type INestApplication } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { AuditService } from '../audit/audit.service';
-import { AccessTokenGuard } from '../auth/access-token.guard';
-import { AuthService } from '../auth/auth.service';
-import { SecretBox } from '../auth/secret-box';
-import { SuperAdminGuard } from '../auth/super-admin.guard';
-import { PrismaService } from '../prisma/prisma.service';
 import { createTestPrisma } from '../testing/test-prisma';
-import { ClientsController } from './clients.controller';
-import { ClientsService } from './clients.service';
+import {
+  createSessionToken,
+  httpCall,
+  startHttpTestApp,
+  type HttpTestApp,
+} from '../testing/http-test-app';
 
-// The real PrismaService reads .env at import time: replace it by a token,
-// and give the test database client under that token.
+// The real PrismaService reads .env at import time: replace it by a token.
 vi.mock('../prisma/prisma.service', () => ({ PrismaService: class PrismaServiceToken {} }));
 
 const prisma = createTestPrisma();
-const jwt = new JwtService({
-  secret: 'test-only-secret-at-least-32-characters-long',
-  signOptions: { algorithm: 'HS256' },
-  verifyOptions: { algorithms: ['HS256'] },
-});
-const box = new SecretBox(randomBytes(32).toString('base64'));
-
-// Same controller and guards as production; dependencies given explicitly.
-class ClientsHttpTestModule {}
-Module({
-  controllers: [ClientsController],
-  providers: [
-    { provide: PrismaService, useValue: prisma },
-    { provide: AuditService, useFactory: () => new AuditService(prisma as never) },
-    { provide: ClientsService, useFactory: () => new ClientsService(prisma as never) },
-    {
-      provide: AuthService,
-      inject: [AuditService],
-      useFactory: (audit: AuditService) => new AuthService(prisma as never, jwt, box, audit),
-    },
-    AccessTokenGuard,
-    SuperAdminGuard,
-  ],
-})(ClientsHttpTestModule);
-
-let app: INestApplication;
-let baseUrl: string;
+let server: HttpTestApp;
 let adminToken: string;
 let clientToken: string;
 
-// A user with an open session, and a signed access token for it.
-async function tokenFor(role: 'SUPER_ADMIN' | 'CLIENT_USER'): Promise<string> {
-  const user = await prisma.user.create({
-    data: {
-      email: `http-${role.toLowerCase().replace('_', '-')}-${randomUUID().slice(0, 8)}@alaa.test`,
-      fullName: 'HTTP Test',
-      passwordHash: 'not-a-real-hash',
-      role,
-    },
-  });
-  const session = await prisma.session.create({
-    data: {
-      userId: user.id,
-      refreshTokenHash: randomBytes(32).toString('hex'),
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    },
-  });
-  return jwt.signAsync({ sub: user.id, sid: session.id, role }, { expiresIn: 900 });
-}
-
-async function call(method: string, path: string, token?: string, body?: unknown) {
-  const response = await fetch(`${baseUrl}/api/admin/clients${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
-  const json: unknown = await response.json().catch(() => null);
-  return { status: response.status, body: json as Record<string, unknown> };
+function call(method: string, path: string, token?: string, body?: unknown) {
+  return httpCall(server.baseUrl, method, `/admin/clients${path}`, token, body);
 }
 
 describe('/api/admin/clients over HTTP (test database)', () => {
   beforeAll(async () => {
-    app = await NestFactory.create(ClientsHttpTestModule, { logger: false });
-    app.setGlobalPrefix('api');
-    await app.listen(0, '127.0.0.1');
-    baseUrl = (await app.getUrl()).replace('[::1]', '127.0.0.1');
-    adminToken = await tokenFor('SUPER_ADMIN');
-    clientToken = await tokenFor('CLIENT_USER');
+    server = await startHttpTestApp(prisma);
+    adminToken = (await createSessionToken(prisma, server.jwt, 'SUPER_ADMIN')).token;
+    const ownClient = await prisma.client.create({ data: { name: `Own ${randomUUID()}` } });
+    clientToken = (await createSessionToken(prisma, server.jwt, 'CLIENT_USER', ownClient.id)).token;
   });
 
   afterAll(async () => {
-    await app.close();
+    await server.close();
     await prisma.$disconnect();
   });
 

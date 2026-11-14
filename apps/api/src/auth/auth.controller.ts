@@ -17,7 +17,7 @@ import { AccessTokenGuard } from './access-token.guard';
 import { REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH } from './auth.constants';
 import { toHttpError } from './auth.http-errors';
 import { LoginRateLimitGuard } from './login-rate-limit.guard';
-import { AuthService, type IssuedTokens } from './auth.service';
+import { AuthService, type IssuedTokens, type LoginResult } from './auth.service';
 import type { AuthRequest, AuthResponse, AuthenticatedRequest, CookieOptions } from './auth.types';
 import { readCookie } from './tokens';
 
@@ -30,6 +30,12 @@ const TwoFactorSchema = z.object({
   challengeToken: z.string().min(1).max(2000),
   // 6-digit app code, or a recovery code (XXXXX-XXXXX)
   code: z.string().min(1).max(32),
+});
+
+const PasswordChangeSchema = z.object({
+  changeToken: z.string().min(1).max(2000),
+  // The password policy itself is checked by the service (12 to 128 characters).
+  newPassword: z.string().min(1).max(256),
 });
 
 function cookieOptions(expires?: Date): CookieOptions {
@@ -68,15 +74,31 @@ export class AuthController {
         parsed.data.password,
         requestContext(req),
       );
-      if (result.status === 'two_factor_required') {
-        // No session and no cookie yet: the second step is still needed.
-        return {
-          status: result.status,
-          challengeToken: result.challengeToken,
-          expiresIn: result.expiresIn,
-        };
-      }
-      return this.respond(result.tokens, res);
+      return this.respondToLogin(result, res);
+    } catch (error) {
+      throw toHttpError(error);
+    }
+  }
+
+  // After a temporary password: choose the new password (ADR 0016).
+  @Post('password/change')
+  @HttpCode(200)
+  @UseGuards(LoginRateLimitGuard)
+  async changeTemporaryPassword(
+    @Body() body: unknown,
+    @Req() req: AuthRequest,
+    @Res({ passthrough: true }) res: AuthResponse,
+  ) {
+    const parsed = PasswordChangeSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException('Login step and new password are required');
+
+    try {
+      const result = await this.auth.completePasswordChange(
+        parsed.data.changeToken,
+        parsed.data.newPassword,
+        requestContext(req),
+      );
+      return this.respondToLogin(result, res);
     } catch (error) {
       throw toHttpError(error);
     }
@@ -138,6 +160,25 @@ export class AuthController {
     if (!req.auth) throw new UnauthorizedException();
     const { id, email, fullName, role } = req.auth;
     return { id, email, fullName, role };
+  }
+
+  // A step is still needed (2FA code or new password): no session, no cookie yet.
+  private respondToLogin(result: LoginResult, res: AuthResponse) {
+    if (result.status === 'two_factor_required') {
+      return {
+        status: result.status,
+        challengeToken: result.challengeToken,
+        expiresIn: result.expiresIn,
+      };
+    }
+    if (result.status === 'password_change_required') {
+      return {
+        status: result.status,
+        changeToken: result.changeToken,
+        expiresIn: result.expiresIn,
+      };
+    }
+    return this.respond(result.tokens, res);
   }
 
   // The refresh token goes ONLY into the httpOnly cookie, never into the JSON body.

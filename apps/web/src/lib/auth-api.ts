@@ -12,6 +12,8 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
+  // The client of a CLIENT_USER account, null for the administration.
+  clientId?: string | null;
 }
 
 export interface Session {
@@ -29,6 +31,11 @@ export type AuthErrorCode =
   | 'account_locked'
   | 'account_suspended'
   | 'two_factor_setup_required'
+  | 'client_inactive'
+  | 'password_change_expired'
+  | 'weak_password'
+  | 'password_reused'
+  | 'password_mismatch' // checked in the browser: the two new passwords differ
   | 'too_many_requests'
   | 'invalid_input'
   | 'server_unreachable';
@@ -41,7 +48,8 @@ export class AuthApiError extends Error {
 
 export type LoginResult =
   | { status: 'authenticated'; session: Session }
-  | { status: 'two_factor_required'; challengeToken: string; expiresIn: number };
+  | { status: 'two_factor_required'; challengeToken: string; expiresIn: number }
+  | { status: 'password_change_required'; changeToken: string; expiresIn: number };
 
 const KNOWN_CODES: readonly AuthErrorCode[] = [
   'invalid_credentials',
@@ -51,6 +59,10 @@ const KNOWN_CODES: readonly AuthErrorCode[] = [
   'account_locked',
   'account_suspended',
   'two_factor_setup_required',
+  'client_inactive',
+  'password_change_expired',
+  'weak_password',
+  'password_reused',
 ];
 
 function errorCode(status: number, body: unknown): AuthErrorCode {
@@ -102,9 +114,16 @@ function toSession(data: unknown): Session {
   return { accessToken: data.accessToken, expiresIn: data.expiresIn, user: data.user };
 }
 
-export async function login(email: string, password: string): Promise<LoginResult> {
-  const data = await post('login', { email, password });
+// The API answers a login step with a session, or with the next step to do.
+function toLoginResult(data: unknown): LoginResult {
   const v = (data ?? {}) as Record<string, unknown>;
+  if (v['status'] === 'password_change_required' && typeof v['changeToken'] === 'string') {
+    return {
+      status: 'password_change_required',
+      changeToken: v['changeToken'],
+      expiresIn: typeof v['expiresIn'] === 'number' ? v['expiresIn'] : 600,
+    };
+  }
   if (v['status'] === 'two_factor_required' && typeof v['challengeToken'] === 'string') {
     return {
       status: 'two_factor_required',
@@ -113,6 +132,18 @@ export async function login(email: string, password: string): Promise<LoginResul
     };
   }
   return { status: 'authenticated', session: toSession(data) };
+}
+
+export async function login(email: string, password: string): Promise<LoginResult> {
+  return toLoginResult(await post('login', { email, password }));
+}
+
+// After a temporary password: the user's own new password (ADR 0016).
+export async function changeTemporaryPassword(
+  changeToken: string,
+  newPassword: string,
+): Promise<LoginResult> {
+  return toLoginResult(await post('password/change', { changeToken, newPassword }));
 }
 
 export async function verifyTwoFactor(challengeToken: string, code: string): Promise<Session> {

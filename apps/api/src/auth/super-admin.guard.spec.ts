@@ -9,7 +9,7 @@ function contextFor(request: AuthenticatedRequest): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-const user = { id: 'u1', email: 'a@b.c', fullName: 'A', sessionId: 's1' };
+const user = { id: 'u1', email: 'a@b.c', fullName: 'A', sessionId: 's1', clientId: null };
 const guard = new SuperAdminGuard();
 
 describe('SuperAdminGuard', () => {

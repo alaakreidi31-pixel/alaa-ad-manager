@@ -2,9 +2,19 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../auth/auth-context';
-import { AuthApiError, login, verifyTwoFactor, type AuthErrorCode } from '../lib/auth-api';
+import {
+  AuthApiError,
+  changeTemporaryPassword,
+  login,
+  verifyTwoFactor,
+  type AuthErrorCode,
+  type LoginResult,
+} from '../lib/auth-api';
 
-type Step = { name: 'password' } | { name: 'code'; challengeToken: string };
+type Step =
+  | { name: 'password' }
+  | { name: 'code'; challengeToken: string }
+  | { name: 'new_password'; changeToken: string };
 
 const inputClass =
   'mt-1.5 w-full rounded-xl border border-ink-700 bg-ink-950 px-4 py-3 text-white placeholder:text-ink-400 focus:border-gold-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/40';
@@ -24,6 +34,8 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
   const [useRecovery, setUseRecovery] = useState(false);
   const [error, setError] = useState<AuthErrorCode | null>(null);
   const [busy, setBusy] = useState(false);
@@ -35,15 +47,46 @@ export function LoginPage() {
     try {
       const result = await login(email, password);
       setPassword(''); // never keep the password longer than needed
-      if (result.status === 'two_factor_required') {
-        setStep({ name: 'code', challengeToken: result.challengeToken });
-        setCode('');
-      } else {
-        signIn(result.session);
-        void navigate('/', { replace: true });
-      }
+      next(result);
     } catch (caught) {
       setError(errorOf(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Goes to the next step the API asked for, or into the app.
+  function next(result: LoginResult) {
+    if (result.status === 'two_factor_required') {
+      setStep({ name: 'code', challengeToken: result.challengeToken });
+      setCode('');
+    } else if (result.status === 'password_change_required') {
+      setStep({ name: 'new_password', changeToken: result.changeToken });
+    } else {
+      signIn(result.session);
+      void navigate('/', { replace: true });
+    }
+  }
+
+  async function submitNewPassword(event: FormEvent) {
+    event.preventDefault();
+    if (step.name !== 'new_password') return;
+    if (newPassword !== confirmation) {
+      setError('password_mismatch');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await changeTemporaryPassword(step.changeToken, newPassword);
+      setNewPassword('');
+      setConfirmation('');
+      next(result);
+    } catch (caught) {
+      const reason = errorOf(caught);
+      setError(reason);
+      // The 10-minute step expired: start again from the password.
+      if (reason === 'password_change_expired') setStep({ name: 'password' });
     } finally {
       setBusy(false);
     }
@@ -71,14 +114,20 @@ export function LoginPage() {
   return (
     <section className="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6 shadow-2xl shadow-black/50 sm:p-8">
       <h1 className="text-2xl font-bold text-white">
-        {step.name === 'password' ? t('auth.title') : t('auth.codeTitle')}
+        {step.name === 'password'
+          ? t('auth.title')
+          : step.name === 'new_password'
+            ? t('auth.newPasswordTitle')
+            : t('auth.codeTitle')}
       </h1>
       <p className="mt-1 text-sm text-ink-400">
         {step.name === 'password'
           ? t('auth.subtitle')
-          : useRecovery
-            ? t('auth.recoveryHelp')
-            : t('auth.codeHelp')}
+          : step.name === 'new_password'
+            ? t('auth.newPasswordHelp')
+            : useRecovery
+              ? t('auth.recoveryHelp')
+              : t('auth.codeHelp')}
       </p>
 
       {error && (
@@ -118,6 +167,40 @@ export function LoginPage() {
           </label>
           <button type="submit" disabled={busy || !email || !password} className={buttonClass}>
             {busy ? t('auth.wait') : t('auth.continue')}
+          </button>
+        </form>
+      ) : step.name === 'new_password' ? (
+        <form onSubmit={(event) => void submitNewPassword(event)} className="mt-6" noValidate>
+          <label className="block text-sm font-semibold text-white">
+            {t('auth.newPassword')}
+            <input
+              type="password"
+              dir="ltr"
+              autoFocus
+              autoComplete="new-password"
+              minLength={12}
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <label className="mt-4 block text-sm font-semibold text-white">
+            {t('auth.confirmPassword')}
+            <input
+              type="password"
+              dir="ltr"
+              autoComplete="new-password"
+              value={confirmation}
+              onChange={(event) => setConfirmation(event.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={busy || !newPassword || !confirmation}
+            className={buttonClass}
+          >
+            {busy ? t('auth.wait') : t('auth.savePassword')}
           </button>
         </form>
       ) : (

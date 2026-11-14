@@ -32,3 +32,21 @@ export class InvalidClientStatusChangeError extends Error {
     super(`A client cannot go from ${from} to ${to}`);
   }
 }
+
+export class ClientUserNotFoundError extends Error {
+  constructor() {
+    super('User not found for this client');
+  }
+}
+
+export class EmailTakenError extends Error {
+  constructor() {
+    super('An account with this email already exists');
+  }
+}
+
+export class InvalidUserStatusChangeError extends Error {
+  constructor(from: string, to: string) {
+    super(`A user cannot go from ${from} to ${to}`);
+  }
+}
