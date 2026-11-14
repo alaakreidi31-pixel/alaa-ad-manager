@@ -7,12 +7,13 @@
     "dev": "pnpm --filter @alaa/api --filter @alaa/web --parallel dev",
     "dev:api": "pnpm --filter @alaa/api dev",
     "dev:web": "pnpm --filter @alaa/web dev",
+    "generate": "pnpm --filter @alaa/api prisma:generate",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+    "check": "pnpm format:check && pnpm generate && pnpm lint && pnpm typecheck && pnpm test"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
