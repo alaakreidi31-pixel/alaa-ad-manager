@@ -1,0 +1,44 @@
+# CI: runs the same checks as "pnpm check" on a clean GitHub machine
+# for every push and pull request. No secrets are needed.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Read-only access: this workflow only reads the code.
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels the older, unfinished run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: pnpm check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Install Node.js (version from .nvmrc)
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # --frozen-lockfile: fail instead of silently changing pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format, lint, typecheck and test
+        run: pnpm check
