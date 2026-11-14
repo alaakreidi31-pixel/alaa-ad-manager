@@ -67,6 +67,14 @@ Copy-Item "apps\api\.env.example" "apps\api\.env"
 
 ثم في `apps\api\.env` تُستبدل كل `CHANGE_ME` بكلمة مرور المستخدم المذكور في نفس السطر (`alaa_app` أو `alaa_migrator`).
 
+`JWT_ACCESS_SECRET` لا يُكتب يدوياً. يُحذف سطر `JWT_ACCESS_SECRET=CHANGE_ME` من `.env`، ثم يُولَّد السر ويُضاف دون أن يظهر على الشاشة:
+
+```powershell
+Add-Content -Path apps\api\.env -Value ("`nJWT_ACCESS_SECRET=" + (node -e "process.stdout.write(require('crypto').randomBytes(48).toString('base64url'))"))
+```
+
+للتأكد (يطبع `True` فقط): `Select-String -Path apps\api\.env -Pattern '^JWT_ACCESS_SECRET=' -Quiet`
+
 - ملف `.env` محمي بـ `.gitignore` ولا يُحفظ في Git أبداً.
 - لا يُصوَّر ولا يُرسل ولا يُنسخ إلى التوثيق.
 

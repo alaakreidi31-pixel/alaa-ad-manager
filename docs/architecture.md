@@ -1,6 +1,6 @@
 # البنية الحالية للنظام
 
-> هذا الملف يصف ما هو **موجود فعلاً** في الكود حتى نهاية المرحلة 0 (الوسم `v0.0-phase0`). ما لم يُبنَ بعد مذكور صراحةً في القسم الأخير.
+> هذا الملف يصف ما هو **موجود فعلاً** في الكود حتى نهاية الخطوة 1.3. ما لم يُبنَ بعد مذكور صراحةً في القسم الأخير.
 
 ## الصورة العامة
 
@@ -38,6 +38,23 @@
 
 - مستخدمان: `alaa_migrator` يملك البنية، و`alaa_app` للبيانات فقط. انظر [ADR 0009](decisions/0009-database-roles-and-migrations.md).
 - الـ migrations في `apps/api/prisma/migrations/`، وملفات التراجع في `apps/api/prisma/rollbacks/`.
+
+### جدول `sessions` (migration `20261114110456_create_sessions`)
+
+- جلسة لكل تسجيل دخول. يُخزَّن **SHA-256 للـ refresh token فقط**، وليس الرمز نفسه.
+- `revoked_at` يُضبط عند الخروج، وعند التجديد، وعند اكتشاف إعادة استخدام رمز قديم. الجلسات لا تُحذف.
+- مرتبط بـ `users` بـ `ON DELETE RESTRICT`.
+
+## تسجيل الدخول (`/api/auth`)
+
+| النقطة                   | الوظيفة                                                                 |
+| ------------------------ | ----------------------------------------------------------------------- |
+| `POST /api/auth/login`   | بريد وكلمة مرور ← Access Token في الرد، وRefresh Token في cookie        |
+| `POST /api/auth/refresh` | يستبدل الـ refresh token بآخر جديد (rotation)، ويعطي Access Token جديداً |
+| `POST /api/auth/logout`  | يلغي الجلسة ويحذف الـ cookie                                            |
+| `GET /api/auth/me`       | بيانات المستخدم الحالي، ويتطلب `Authorization: Bearer`                  |
+
+التفاصيل والأسباب في [ADR 0011](decisions/0011-sessions-and-tokens.md).
 
 ### جدول `users` (migration `20261114093306_create_users`)
 
@@ -100,18 +117,20 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (56 اختباراً)
+## الاختبارات الموجودة (86 اختباراً)
 
 | الملف                                                   | العدد | ماذا يحمي                                                              |
 | ------------------------------------------------------- | ----- | ---------------------------------------------------------------------- |
-| `apps/api/src/config/env.schema.spec.ts`                | 6     | حارس الإعدادات يقبل الصحيح ويرفض الناقص أو الخاطئ                      |
+| `apps/api/src/config/env.schema.spec.ts`                | 8     | حارس الإعدادات يقبل الصحيح ويرفض الناقص أو الخاطئ                      |
 | `apps/api/src/health/health.controller.spec.ts`         | 2     | `/api/health` يعيد `up`، أو `down` مع 503                              |
 | `apps/api/src/users/email.spec.ts`                      | 4     | توحيد البريد                                                           |
 | `apps/api/src/testing/test-database.spec.ts`            | 5     | حارس قاعدة الاختبار، ولا يُظهر كلمة المرور                              |
 | `apps/api/src/users/users.db-spec.ts`                   | 12    | جدول المستخدمين على PostgreSQL الحقيقي، وأن `alaa_app` لا يغيّر البنية  |
 | `apps/api/src/auth/password.spec.ts`                    | 9     | تشفير argon2id، والتحقق، وسياسة كلمة المرور                            |
 | `apps/api/src/users/create-super-admin.db-spec.ts`      | 8     | إنشاء SUPER_ADMIN: واحد فقط، وتشفير كلمة المرور، ورفض المدخلات الخاطئة |
-| `apps/api/src/migrations/create-users.rollback-spec.ts` | 1     | التراجع الكامل ثم إعادة التطبيق                                        |
+| `apps/api/src/auth/tokens.spec.ts`                      | 9     | توليد الرموز وبصمتها، وقراءة الـ cookie والـ Bearer                    |
+| `apps/api/src/auth/auth.service.db-spec.ts`             | 18    | الدخول، والتجديد، واكتشاف الرمز المسروق، والخروج، والإيقاف             |
+| `apps/api/src/migrations/create-users.rollback-spec.ts` | 2     | لكل migration ملف تراجع، والتراجع عن الكل ثم إعادة التطبيق             |
 | `apps/web/src/lib/health.test.ts`                       | 6     | الواجهة تتعامل مع كل حالات رد الخادم                                   |
 | `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ              |
 
@@ -141,7 +160,7 @@ alaa-ad-manager/
 
 ## ما لم يُبنَ بعد
 
-- تسجيل الدخول وتشفير كلمات المرور و2FA (بقية المرحلة 1). لا يوجد أي endpoint لتسجيل حساب جديد، وSUPER_ADMIN يُنشأ بأمر إداري فقط (الخطوة 1.2).
+- منع التخمين (1.4)، و2FA (1.5)، وسجل التدقيق (1.6)، وصفحة الدخول في الواجهة (1.7). لا يوجد أي endpoint لتسجيل حساب جديد (ADR 0010).
 - محتوى `packages/shared`: نوع `HealthResponse` معرّف حالياً في الخادم والواجهة كلٍّ على حدة، والخطة نقله إلى الحزمة المشتركة لاحقاً.
 - Docker وأي إعداد للنشر.
 - التكاملات مع Meta وGoogle وWhatsApp (مؤجلة إلى ما بعد النسخة الأساسية بقرار صاحبة المشروع).

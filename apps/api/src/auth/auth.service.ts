@@ -1,0 +1,196 @@
+import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { randomBytes } from 'node:crypto';
+import type { UserRole } from '../generated/prisma/enums';
+import { PrismaService } from '../prisma/prisma.service';
+import { normalizeEmail } from '../users/email';
+import { hashPassword, verifyPassword } from './password';
+import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_MS } from './auth.constants';
+import {
+  AccountSuspendedError,
+  InvalidCredentialsError,
+  InvalidSessionError,
+  RefreshTokenReuseError,
+} from './auth.errors';
+import { generateRefreshToken, hashRefreshToken } from './tokens';
+
+export interface AccessTokenPayload {
+  sub: string; // user id
+  sid: string; // session id
+  role: UserRole;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+}
+
+export interface IssuedTokens {
+  accessToken: string;
+  accessTokenExpiresIn: number;
+  refreshToken: string;
+  refreshTokenExpiresAt: Date;
+  user: AuthUser;
+}
+
+const AUTH_USER_FIELDS = { id: true, email: true, fullName: true, role: true } as const;
+
+@Injectable()
+export class AuthService {
+  // Used when the email does not exist, so the response takes about the same
+  // time as a wrong password (prevents discovering emails by timing).
+  private dummyHash: Promise<string> | undefined;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
+  ) {}
+
+  async login(email: string, password: string, userAgent?: string): Promise<IssuedTokens> {
+    const user = await this.prisma.user.findUnique({ where: { email: normalizeEmail(email) } });
+
+    if (!user) {
+      this.dummyHash ??= hashPassword(randomBytes(16).toString('hex'));
+      await verifyPassword(await this.dummyHash, password);
+      throw new InvalidCredentialsError();
+    }
+    if (!(await verifyPassword(user.passwordHash, password))) {
+      throw new InvalidCredentialsError();
+    }
+    if (user.status !== 'ACTIVE') {
+      throw new AccountSuspendedError();
+    }
+
+    return this.startSession(user, userAgent);
+  }
+
+  // Rotation: every refresh token works once. Using an old one again means it
+  // may have been stolen, so every session of that user is closed.
+  async refresh(refreshToken: string, userAgent?: string): Promise<IssuedTokens> {
+    const now = new Date();
+    const session = await this.prisma.session.findUnique({
+      where: { refreshTokenHash: hashRefreshToken(refreshToken) },
+      include: { user: true },
+    });
+
+    if (!session) throw new InvalidSessionError();
+    if (session.revokedAt) {
+      await this.revokeAllSessions(session.userId);
+      throw new RefreshTokenReuseError();
+    }
+    if (session.expiresAt <= now) throw new InvalidSessionError();
+    if (session.user.status !== 'ACTIVE') {
+      await this.revokeAllSessions(session.userId);
+      throw new AccountSuspendedError();
+    }
+
+    const refreshTokenValue = generateRefreshToken();
+    const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_MS);
+
+    const next = await this.prisma.$transaction(async (tx) => {
+      // Only one request can consume a token, even if two arrive together.
+      const consumed = await tx.session.updateMany({
+        where: { id: session.id, revokedAt: null },
+        data: { revokedAt: now },
+      });
+      if (consumed.count !== 1) return null;
+
+      const created = await tx.session.create({
+        data: {
+          userId: session.userId,
+          refreshTokenHash: hashRefreshToken(refreshTokenValue),
+          userAgent: userAgent ?? null,
+          expiresAt,
+        },
+      });
+      await tx.session.update({ where: { id: session.id }, data: { replacedById: created.id } });
+      return created;
+    });
+
+    if (!next) {
+      await this.revokeAllSessions(session.userId);
+      throw new RefreshTokenReuseError();
+    }
+
+    return this.buildTokens(session.user, next.id, refreshTokenValue, expiresAt);
+  }
+
+  // Never fails: logging out with an unknown or old token simply does nothing.
+  async logout(refreshToken: string | undefined): Promise<void> {
+    if (!refreshToken) return;
+    await this.prisma.session.updateMany({
+      where: { refreshTokenHash: hashRefreshToken(refreshToken), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  // Checks an access token on every protected request: valid signature, and the
+  // session and the account are still active (logout and suspension apply at once).
+  async validateAccessToken(token: string): Promise<AuthUser & { sessionId: string }> {
+    let payload: AccessTokenPayload;
+    try {
+      payload = await this.jwt.verifyAsync<AccessTokenPayload>(token);
+    } catch {
+      throw new InvalidSessionError();
+    }
+
+    const session = await this.prisma.session.findUnique({
+      where: { id: payload.sid },
+      include: { user: { select: { ...AUTH_USER_FIELDS, status: true } } },
+    });
+    if (
+      !session ||
+      session.userId !== payload.sub ||
+      session.revokedAt ||
+      session.expiresAt <= new Date() ||
+      session.user.status !== 'ACTIVE'
+    ) {
+      throw new InvalidSessionError();
+    }
+
+    const { id, email, fullName, role } = session.user;
+    return { id, email, fullName, role, sessionId: session.id };
+  }
+
+  private async revokeAllSessions(userId: string): Promise<void> {
+    await this.prisma.session.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  private async startSession(user: AuthUser, userAgent?: string): Promise<IssuedTokens> {
+    const refreshTokenValue = generateRefreshToken();
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+    const session = await this.prisma.session.create({
+      data: {
+        userId: user.id,
+        refreshTokenHash: hashRefreshToken(refreshTokenValue),
+        userAgent: userAgent ?? null,
+        expiresAt,
+      },
+    });
+    return this.buildTokens(user, session.id, refreshTokenValue, expiresAt);
+  }
+
+  private async buildTokens(
+    user: AuthUser,
+    sessionId: string,
+    refreshToken: string,
+    refreshTokenExpiresAt: Date,
+  ): Promise<IssuedTokens> {
+    const payload: AccessTokenPayload = { sub: user.id, sid: sessionId, role: user.role };
+    const accessToken = await this.jwt.signAsync(payload, {
+      expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+    });
+    return {
+      accessToken,
+      accessTokenExpiresIn: ACCESS_TOKEN_TTL_SECONDS,
+      refreshToken,
+      refreshTokenExpiresAt,
+      user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role },
+    };
+  }
+}

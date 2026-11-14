@@ -41,6 +41,26 @@ model User {
   // timestamptz: an exact instant, stored in UTC (ADR 0007)
   createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions     Session[]
 
   @@map("users")
+}
+
+// One row per login. The refresh token itself is never stored: only its
+// SHA-256 hash. Sessions are revoked, never deleted (audit history).
+model Session {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  user             User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  userAgent        String?   @map("user_agent")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(3)
+  // Set on logout, on rotation (refresh), and when token reuse is detected
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(3)
+  // The session that replaced this one after a refresh
+  replacedById     String?   @map("replaced_by_id") @db.Uuid
+
+  @@index([userId])
+  @@map("sessions")
 }

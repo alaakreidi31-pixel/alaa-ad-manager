@@ -13,6 +13,7 @@ const VALID = {
 
 describe('createSuperAdmin (real PostgreSQL, test database)', () => {
   beforeEach(async () => {
+    await prisma.session.deleteMany();
     await prisma.user.deleteMany();
   });
 

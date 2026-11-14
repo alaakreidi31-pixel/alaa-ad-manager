@@ -9,6 +9,10 @@ const EnvSchema = z.object({
   DATABASE_URL: z
     .string({ message: 'is required (see apps/api/.env.example)' })
     .regex(/^postgres(ql)?:\/\//, 'must start with postgresql://'),
+  // Signs the access tokens (JWT). Random, at least 32 characters, never shared.
+  JWT_ACCESS_SECRET: z
+    .string({ message: 'is required (see docs/development.md)' })
+    .min(32, { message: 'must be at least 32 characters (see docs/development.md)' }),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
