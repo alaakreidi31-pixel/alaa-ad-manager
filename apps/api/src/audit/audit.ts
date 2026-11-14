@@ -22,7 +22,11 @@ export type AuditAction =
   | 'auth.logout'
   // Administrative commands
   | 'admin.two_factor.enabled'
-  | 'admin.super_admin.created';
+  | 'admin.super_admin.created'
+  // Client management (ADR 0016). The admin is userId, the client is metadata.clientId.
+  | 'admin.client.created'
+  | 'admin.client.updated'
+  | 'admin.client.status_changed';
 
 export type AuditMetadata = Record<string, string | number | boolean | null>;
 

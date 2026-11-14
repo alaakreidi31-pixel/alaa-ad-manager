@@ -1,6 +1,6 @@
 # البنية الحالية للنظام
 
-> هذا الملف يصف ما هو **موجود فعلاً** في الكود حتى نهاية الخطوة 1.7. ما لم يُبنَ بعد مذكور صراحةً في القسم الأخير.
+> هذا الملف يصف ما هو **موجود فعلاً** في الكود حتى نهاية الخطوة 2.1. ما لم يُبنَ بعد مذكور صراحةً في القسم الأخير.
 
 ## الصورة العامة
 
@@ -44,6 +44,20 @@
 - الجلسة في `apps/web/src/auth/auth-context.tsx`: الـ Access Token في الذاكرة فقط، ويُجدَّد تلقائياً قبل انتهائه.
 - التنقل بمكتبة `react-router` الإصدار 7.
 
+## مسارات الإدارة (`/api/admin`)
+
+كلها لـ `SUPER_ADMIN` فقط (`AccessTokenGuard` ثم `SuperAdminGuard`). حساب العميل يحصل على 403.
+
+| النقطة                                 | الوظيفة                                         |
+| -------------------------------------- | ----------------------------------------------- |
+| `GET /api/admin/clients`               | القائمة: `search` و`status` و`page` و`pageSize` |
+| `POST /api/admin/clients`              | إضافة عميل                                      |
+| `GET /api/admin/clients/:id`           | تفاصيل عميل                                     |
+| `PATCH /api/admin/clients/:id`         | تعديل (مرفوض للعميل المؤرشف)                    |
+| `POST /api/admin/clients/:id/suspend`  | إيقاف مؤقت                                      |
+| `POST /api/admin/clients/:id/archive`  | أرشفة                                           |
+| `POST /api/admin/clients/:id/activate` | إعادة تفعيل                                     |
+
 ## قاعدة البيانات
 
 - مستخدمان: `alaa_migrator` يملك البنية، و`alaa_app` للبيانات فقط. انظر [ADR 0009](decisions/0009-database-roles-and-migrations.md).
@@ -70,6 +84,11 @@
 **الحماية من التخمين ([ADR 0012](decisions/0012-brute-force-protection.md)):** 5 كلمات مرور خاطئة متتالية تقفل الحساب 15 دقيقة (العمودان `failed_login_attempts` و`locked_until` في `users`)، و`login` و`refresh` محدودان بـ 10 طلبات في الدقيقة لكل IP. الرد في الحالتين 429.
 
 **التحقق بخطوتين ([ADR 0013](decisions/0013-two-factor-authentication.md)):** إذا كان الحساب يستخدم 2FA، يعيد `login` تذكرة مؤقتة (5 دقائق) بدل الجلسة، وتُفتح الجلسة بعد `2fa/verify`. حساب `SUPER_ADMIN` دون 2FA يُرفض (403). خوارزمية TOTP في `apps/api/src/auth/totp.ts`، والتشفير AES-256-GCM في `secret-box.ts`، والتفعيل بالأمر `pnpm admin:setup-2fa`.
+
+### جدول `clients` (migration `20261115090000_create_clients`)
+
+- عملاء الوكالة. لا حذف: `alaa_app` لا يملك `DELETE` على هذا الجدول، والعميل يُؤرشف. انظر [ADR 0016](decisions/0016-client-management.md).
+- `internal_notes` سرية، للإدارة فقط.
 
 ### جدول `audit_logs` (migration `20261114210000_create_audit_logs`)
 
@@ -145,7 +164,7 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (170 اختباراً)
+## الاختبارات الموجودة (210 اختبارات)
 
 | الملف                                                   | العدد | ماذا يحمي                                                                                   |
 | ------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
@@ -167,6 +186,10 @@ alaa-ad-manager/
 | `apps/api/src/migrations/create-users.rollback-spec.ts` | 2     | لكل migration ملف تراجع، والتراجع عن الكل ثم إعادة التطبيق                                  |
 | `apps/web/src/lib/health.test.ts`                       | 6     | الواجهة تتعامل مع كل حالات رد الخادم                                                        |
 | `apps/web/src/lib/auth-api.test.ts`                     | 8     | الدخول، والخطوة الثانية، وترجمة رموز الأخطاء، وطلب تجديد واحد فقط في كل لحظة                |
+| `apps/api/src/auth/super-admin.guard.spec.ts`           | 3     | مسارات الإدارة لـ `SUPER_ADMIN` فقط                                                         |
+| `apps/api/src/clients/clients.schemas.spec.ts`          | 14    | التحقق من بيانات العميل وتوحيدها                                                            |
+| `apps/api/src/clients/clients.service.db-spec.ts`       | 16    | إدارة العملاء، والأرشفة، وسجل التدقيق، ومنع الحذف من قاعدة البيانات                         |
+| `apps/api/src/clients/clients.http.db-spec.ts`          | 7     | عبر HTTP حقيقي: 401 بلا token، و403 لحساب العميل على كل مسار إداري، و404 للمعرّفات الخاطئة   |
 | `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                   |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.

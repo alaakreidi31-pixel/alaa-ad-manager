@@ -1,0 +1,108 @@
+import { z } from 'zod';
+
+// Validation of the client fields (ADR 0016). The database checks the most
+// important rules again (CHECK constraints in the migration).
+
+const TIME_ZONES = new Set(['UTC', ...Intl.supportedValuesOf('timeZone')]);
+const CURRENCIES = new Set(Intl.supportedValuesOf('currency'));
+
+// Optional text: spaces trimmed, empty text stored as null ("cleared").
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max, { message: `must be at most ${max} characters` })
+    .transform((value) => (value === '' ? null : value))
+    .nullable()
+    .optional();
+
+const optionalEmail = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .transform((value) => (value === '' ? null : value))
+  .pipe(z.email({ message: 'is not a valid email address' }).nullable())
+  .nullable()
+  .optional();
+
+const optionalPhone = optionalText(32).refine(
+  (value) => value === null || value === undefined || /^\+?[0-9][0-9\s\-()]{5,31}$/.test(value),
+  { message: 'is not a valid phone number' },
+);
+
+const optionalWebsite = z
+  .string()
+  .trim()
+  .max(300)
+  .transform((value) => (value === '' ? null : value))
+  .pipe(z.url({ protocol: /^https?$/, message: 'must start with http:// or https://' }).nullable())
+  .nullable()
+  .optional();
+
+const optionalCountry = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .transform((value) => (value === '' ? null : value))
+  .pipe(
+    z
+      .string()
+      .regex(/^[A-Z]{2}$/, { message: 'must be a 2-letter country code, e.g. SA' })
+      .nullable(),
+  )
+  .nullable()
+  .optional();
+
+const currency = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .refine((value) => CURRENCIES.has(value), { message: 'must be a currency code, e.g. USD' });
+
+const timezone = z
+  .string()
+  .trim()
+  .refine((value) => TIME_ZONES.has(value), {
+    message: 'must be a time zone, e.g. Asia/Riyadh',
+  });
+
+const fields = {
+  name: z
+    .string()
+    .trim()
+    .min(2, { message: 'must be at least 2 characters' })
+    .max(200, { message: 'must be at most 200 characters' }),
+  contactName: optionalText(200),
+  email: optionalEmail,
+  phone: optionalPhone,
+  country: optionalCountry,
+  currency: currency.optional(),
+  timezone: timezone.optional(),
+  website: optionalWebsite,
+  businessIndustry: optionalText(100),
+  internalNotes: optionalText(5000),
+};
+
+// .strict(): unknown fields (e.g. "status" or "id") are refused, not ignored.
+export const CreateClientSchema = z.object(fields).strict();
+
+export const UpdateClientSchema = z
+  .object(fields)
+  .partial()
+  .strict()
+  .refine((value) => Object.values(value).some((v) => v !== undefined), {
+    message: 'at least one field is required',
+  });
+
+export const ListClientsQuerySchema = z.object({
+  search: z.string().trim().max(100).optional(),
+  status: z.enum(['ACTIVE', 'SUSPENDED', 'ARCHIVED']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const ClientIdSchema = z.uuid();
+
+export type CreateClientInput = z.input<typeof CreateClientSchema>;
+export type UpdateClientInput = z.input<typeof UpdateClientSchema>;
+export type ListClientsQuery = z.input<typeof ListClientsQuerySchema>;

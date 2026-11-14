@@ -1,0 +1,34 @@
+import type { z } from 'zod';
+
+// Expected client-management failures; the controller turns them into HTTP answers.
+
+export class ClientValidationError extends Error {
+  readonly fields: { field: string; message: string }[];
+
+  constructor(error: z.ZodError) {
+    super('Invalid client data');
+    this.fields = error.issues.map((issue) => ({
+      field: issue.path.join('.') || '(body)',
+      message: issue.message,
+    }));
+  }
+}
+
+export class ClientNotFoundError extends Error {
+  constructor() {
+    super('Client not found');
+  }
+}
+
+// Archived clients are read-only (history).
+export class ClientArchivedError extends Error {
+  constructor() {
+    super('This client is archived and cannot be changed');
+  }
+}
+
+export class InvalidClientStatusChangeError extends Error {
+  constructor(from: string, to: string) {
+    super(`A client cannot go from ${from} to ${to}`);
+  }
+}

@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InvalidSessionError } from './auth.errors';
 import { AuthService } from './auth.service';
 import type { AuthenticatedRequest } from './auth.types';
@@ -7,7 +13,9 @@ import { readBearerToken } from './tokens';
 // Protects a route: requires a valid access token for an active session.
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
-  constructor(private readonly auth: AuthService) {}
+  // @Inject: explicit, so the guard also works in the HTTP tests (Vitest does
+  // not emit the type metadata NestJS normally uses to find dependencies).
+  constructor(@Inject(AuthService) private readonly auth: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();

@@ -24,23 +24,24 @@
 
 > في 2026-11-14 أكدت صاحبة المشروع البنود المعلّقة في القرارات 0005 و0006 و0007، فتغيّرت حالتها.
 
-| رقم                                                     | القرار                                             | الحالة             |
-| ------------------------------------------------------- | -------------------------------------------------- | ------------------ |
-| [0001](decisions/0001-monorepo-pnpm.md)                 | مستودع واحد (Monorepo) بإدارة pnpm                 | منفّذ               |
-| [0002](decisions/0002-nestjs-prisma-7.md)               | NestJS للخادم، وPrisma 7 للتعامل مع قاعدة البيانات | منفّذ               |
-| [0003](decisions/0003-postgresql-native-on-windows.md)  | PostgreSQL مثبّت مباشرة على Windows بدلاً من Docker  | منفّذ               |
-| [0004](decisions/0004-local-security-defaults.md)       | إعدادات الأمان المحلية                             | منفّذ               |
-| [0005](decisions/0005-arabic-english-rtl.md)            | العربية والإنجليزية مع RTL                         | منفّذ               |
-| [0006](decisions/0006-no-ad-keywords-in-urls.md)        | تجنّب كلمة `ad` في الروابط                          | معتمد              |
-| [0007](decisions/0007-utc-timestamps.md)                | الأوقات بتوقيت UTC                                 | معتمد، منفّذ جزئياً  |
-| [0008](decisions/0008-money-as-integer-minor-units.md)  | المبالغ المالية والأتعاب                           | معتمد، لم يُنفَّذ بعد |
-| [0009](decisions/0009-database-roles-and-migrations.md) | صلاحيات قاعدة البيانات والـ migrations والتراجع    | منفّذ               |
-| [0010](decisions/0010-no-public-registration.md)        | لا تسجيل عام، وSUPER_ADMIN بأمر إداري فقط          | منفّذ               |
-| [0011](decisions/0011-sessions-and-tokens.md)           | الجلسات: Access Token وRefresh Token متجدد         | منفّذ               |
-| [0012](decisions/0012-brute-force-protection.md)        | الحماية من التخمين: قفل الحساب وحد لكل IP          | منفّذ               |
-| [0013](decisions/0013-two-factor-authentication.md)     | التحقق بخطوتين (2FA) إلزامي لحساب SUPER_ADMIN      | منفّذ               |
-| [0014](decisions/0014-audit-log.md)                     | سجل التدقيق للأحداث الأمنية، للإضافة فقط           | منفّذ               |
-| [0015](decisions/0015-web-session-and-routing.md)       | الجلسة في الواجهة، والتنقل بـ React Router 7       | منفّذ               |
+| رقم                                                     | القرار                                              | الحالة             |
+| ------------------------------------------------------- | --------------------------------------------------- | ------------------ |
+| [0001](decisions/0001-monorepo-pnpm.md)                 | مستودع واحد (Monorepo) بإدارة pnpm                  | منفّذ               |
+| [0002](decisions/0002-nestjs-prisma-7.md)               | NestJS للخادم، وPrisma 7 للتعامل مع قاعدة البيانات  | منفّذ               |
+| [0003](decisions/0003-postgresql-native-on-windows.md)  | PostgreSQL مثبّت مباشرة على Windows بدلاً من Docker   | منفّذ               |
+| [0004](decisions/0004-local-security-defaults.md)       | إعدادات الأمان المحلية                              | منفّذ               |
+| [0005](decisions/0005-arabic-english-rtl.md)            | العربية والإنجليزية مع RTL                          | منفّذ               |
+| [0006](decisions/0006-no-ad-keywords-in-urls.md)        | تجنّب كلمة `ad` في الروابط                           | معتمد              |
+| [0007](decisions/0007-utc-timestamps.md)                | الأوقات بتوقيت UTC                                  | معتمد، منفّذ جزئياً  |
+| [0008](decisions/0008-money-as-integer-minor-units.md)  | المبالغ المالية والأتعاب                            | معتمد، لم يُنفَّذ بعد |
+| [0009](decisions/0009-database-roles-and-migrations.md) | صلاحيات قاعدة البيانات والـ migrations والتراجع     | منفّذ               |
+| [0010](decisions/0010-no-public-registration.md)        | لا تسجيل عام، وSUPER_ADMIN بأمر إداري فقط           | منفّذ               |
+| [0011](decisions/0011-sessions-and-tokens.md)           | الجلسات: Access Token وRefresh Token متجدد          | منفّذ               |
+| [0012](decisions/0012-brute-force-protection.md)        | الحماية من التخمين: قفل الحساب وحد لكل IP           | منفّذ               |
+| [0013](decisions/0013-two-factor-authentication.md)     | التحقق بخطوتين (2FA) إلزامي لحساب SUPER_ADMIN       | منفّذ               |
+| [0014](decisions/0014-audit-log.md)                     | سجل التدقيق للأحداث الأمنية، للإضافة فقط            | منفّذ               |
+| [0015](decisions/0015-web-session-and-routing.md)       | الجلسة في الواجهة، والتنقل بـ React Router 7        | منفّذ               |
+| [0016](decisions/0016-client-management.md)             | إدارة العملاء، والأرشفة بدل الحذف، وصلاحيات الإدارة | منفّذ جزئياً         |
 
 ## قاعدة أمان لهذا المجلد
 

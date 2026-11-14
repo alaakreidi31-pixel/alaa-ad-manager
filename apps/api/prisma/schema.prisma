@@ -112,3 +112,42 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+// Clients are never deleted (owner decision): they are ARCHIVED.
+// The application database user cannot DELETE rows (see the migration).
+enum ClientStatus {
+  ACTIVE
+  // Temporarily blocked: no login, no services (ADR 0016)
+  SUSPENDED
+  // Finished relationship: read-only, history kept forever
+  ARCHIVED
+
+  @@map("client_status")
+}
+
+// A client company of the agency (ADR 0016).
+model Client {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // Company or brand name
+  name             String
+  contactName      String?      @map("contact_name")
+  // Contact email (not a login: client logins are users, step 2.2)
+  email            String?
+  phone            String?
+  // ISO 3166-1 alpha-2, e.g. "SA"
+  country          String?      @db.Char(2)
+  // ISO 4217, e.g. "USD" (ADR 0008)
+  currency         String       @default("USD") @db.Char(3)
+  // IANA time zone, e.g. "Asia/Riyadh", for the client's reports
+  timezone         String       @default("UTC")
+  website          String?
+  businessIndustry String?      @map("business_industry")
+  status           ClientStatus @default(ACTIVE)
+  // SECRET: for the agency only. Never returned by any client-facing API.
+  internalNotes    String?      @map("internal_notes")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@map("clients")
+}
