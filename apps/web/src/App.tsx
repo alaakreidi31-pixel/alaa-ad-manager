@@ -1,12 +1,20 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes } from 'react-router';
 import { AuthProvider } from './auth/auth-context';
-import { GuestOnly, RequireAuth } from './auth/route-guards';
+import { GuestOnly, RequireAuth, RequireRole } from './auth/route-guards';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { Logo } from './components/Logo';
+import { MainNav } from './components/MainNav';
 import { UserMenu } from './components/UserMenu';
+import { ClientDetailPage } from './pages/admin/ClientDetailPage';
+import { ClientFormPage } from './pages/admin/ClientFormPage';
+import { ClientsListPage } from './pages/admin/ClientsListPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
+
+// Administration pages: SUPER_ADMIN only.
+const admin = (page: ReactNode) => <RequireRole role="SUPER_ADMIN">{page}</RequireRole>;
 
 // Layout uses logical spacing (ps/pe/ms/me, text-start) instead of left/right,
 // so the whole page flips correctly between English (LTR) and Arabic (RTL).
@@ -19,6 +27,7 @@ export function App() {
         <header className="border-b border-ink-700 bg-ink-900/80">
           <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-4 sm:px-6">
             <Logo />
+            <MainNav />
             <div className="ms-auto flex items-center gap-3">
               <UserMenu />
               <LanguageSwitcher />
@@ -44,6 +53,10 @@ export function App() {
                 </RequireAuth>
               }
             />
+            <Route path="/admin/clients" element={admin(<ClientsListPage />)} />
+            <Route path="/admin/clients/new" element={admin(<ClientFormPage />)} />
+            <Route path="/admin/clients/:id" element={admin(<ClientDetailPage />)} />
+            <Route path="/admin/clients/:id/edit" element={admin(<ClientFormPage />)} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

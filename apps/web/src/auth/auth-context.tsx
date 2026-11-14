@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import type { ReactNode } from 'react';
+import { apiRequest, type Api, type RequestOptions } from '../lib/api-client';
 import { logout as apiLogout, refreshSession, type AuthUser, type Session } from '../lib/auth-api';
 
 export type AuthState =
@@ -21,6 +22,8 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   // For API calls that need "Authorization: Bearer" (next phases).
   getAccessToken: () => string | null;
+  // Calls a protected API route; renews an expired session once (ADR 0015).
+  api: Api;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -80,9 +83,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clear();
   }, [clear]);
 
+  const api: Api = useCallback(
+    <T,>(path: string, options: RequestOptions = {}) =>
+      apiRequest<T>(path, options, {
+        getToken: () => accessToken.current,
+        renew: async () => {
+          const session = await refreshSession().catch(() => null);
+          if (session) apply(session);
+          else clear();
+          return session !== null;
+        },
+      }),
+    [apply, clear],
+  );
+
   const value = useMemo<AuthContextValue>(
-    () => ({ state, signIn: apply, signOut, getAccessToken: () => accessToken.current }),
-    [state, apply, signOut],
+    () => ({ state, signIn: apply, signOut, getAccessToken: () => accessToken.current, api }),
+    [state, apply, signOut, api],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

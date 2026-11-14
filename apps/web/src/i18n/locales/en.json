@@ -3,7 +3,7 @@
     "switchLabel": "Switch to Arabic"
   },
   "status": {
-    "phase": "PHASE 0",
+    "phase": "MONITORING",
     "title": "System Status",
     "subtitle": "Live connection check of the platform services.",
     "api": "API",
@@ -68,5 +68,100 @@
       "SUPER_ADMIN": "System administrator",
       "CLIENT_USER": "Client"
     }
+  },
+  "common": {
+    "loading": "Loading…",
+    "back": "← Back",
+    "save": "Save",
+    "edit": "Edit",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{pages}}"
+  },
+  "nav": {
+    "label": "Main menu",
+    "home": "Home",
+    "clients": "Clients"
+  },
+  "clients": {
+    "title": "Clients",
+    "add": "Add client",
+    "addTitle": "Add a new client",
+    "editTitle": "Edit client",
+    "search": "Search",
+    "searchPlaceholder": "Search by name, contact or email",
+    "filterStatus": "Status",
+    "allStatuses": "All statuses",
+    "empty": "No matching clients.",
+    "total": "Total: {{total}}",
+    "internalOnly": "Agency only, never shown to the client",
+    "invalidField": "Invalid value",
+    "archivedReadOnly": "This client is archived and read-only. Reactivate it first to edit.",
+    "suspend": "Suspend",
+    "activate": "Reactivate",
+    "archive": "Archive",
+    "confirmSuspend": "Suspend this client? All its accounts are signed out at once and cannot sign in.",
+    "confirmActivate": "Reactivate this client? Its accounts can sign in again.",
+    "confirmArchive": "Archive this client? Its accounts are signed out and its data becomes read-only. It can be reactivated later.",
+    "inactiveNotice": {
+      "SUSPENDED": "Client suspended: its accounts cannot sign in.",
+      "ARCHIVED": "Client archived: its accounts cannot sign in, and its data is read-only."
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "ARCHIVED": "Archived"
+    },
+    "fields": {
+      "name": "Company or brand name",
+      "contactName": "Contact person",
+      "email": "Email",
+      "phone": "Phone",
+      "country": "Country",
+      "currency": "Currency",
+      "timezone": "Time zone",
+      "website": "Website",
+      "businessIndustry": "Industry",
+      "internalNotes": "Internal notes",
+      "status": "Status",
+      "createdAt": "Added on"
+    }
+  },
+  "clientUsers": {
+    "title": "Login accounts",
+    "subtitle": "People who sign in to this client's portal. Each account sees this client's data only.",
+    "fullName": "Name",
+    "email": "Email",
+    "actions": "Actions",
+    "empty": "No accounts yet.",
+    "add": "Add account",
+    "mustChangePassword": "Has not changed the temporary password yet",
+    "resetPassword": "New password",
+    "confirmReset": "Create a new temporary password? The current password stops working and all sessions of this account end.",
+    "confirmSuspend": "Suspend this account? Its sessions end at once.",
+    "passwordTitle": "Temporary password",
+    "passwordFor": "For the account:",
+    "passwordWarning": "Copy it now and send it to the client securely. It will not be shown again, and must be changed at the first sign-in.",
+    "copy": "Copy",
+    "copied": "Copied ✓",
+    "passwordSaved": "I saved it, close"
+  },
+  "clientPortal": {
+    "company": "Your company",
+    "comingSoon": "Campaigns, reports and invoices will appear here soon."
+  },
+  "apiErrors": {
+    "invalid_input": "Some fields are invalid. Fix the ones marked in red.",
+    "client_not_found": "Client not found.",
+    "user_not_found": "Account not found for this client.",
+    "client_archived": "This client is archived and cannot be changed.",
+    "invalid_status_change": "This change is not possible in the current status.",
+    "email_taken": "An account with this email already exists.",
+    "forbidden": "You do not have access to this page.",
+    "not_found": "Not found.",
+    "conflict": "The action conflicts with the current data. Refresh the page.",
+    "invalid_session": "Your session has ended. Please sign in again.",
+    "too_many_requests": "Too many requests. Wait a minute and try again.",
+    "server_unreachable": "Cannot reach the server. Please try again shortly."
   }
 }

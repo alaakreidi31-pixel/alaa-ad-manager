@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router';
+import type { UserRole } from '../lib/auth-api';
 import { useAuth } from './auth-context';
 
 function Loading() {
@@ -25,5 +26,15 @@ export function GuestOnly({ children }: { children: ReactNode }) {
   const { state } = useAuth();
   if (state.status === 'loading') return <Loading />;
   if (state.status === 'signed_in') return <Navigate to="/" replace />;
+  return children;
+}
+
+// Pages for one role only; anyone else goes back to their home page.
+// (A protection of the screens only: the API checks the role on every request.)
+export function RequireRole({ role, children }: { role: UserRole; children: ReactNode }) {
+  const { state } = useAuth();
+  if (state.status === 'loading') return <Loading />;
+  if (state.status === 'signed_out') return <Navigate to="/login" replace />;
+  if (state.user.role !== role) return <Navigate to="/" replace />;
   return children;
 }
