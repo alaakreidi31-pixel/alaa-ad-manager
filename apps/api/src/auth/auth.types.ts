@@ -2,6 +2,7 @@ import type { AuthUser } from './auth.service';
 
 // The small part of the Express request and response objects used by auth.
 export interface AuthRequest {
+  ip?: string;
   headers: {
     authorization?: string;
     cookie?: string;

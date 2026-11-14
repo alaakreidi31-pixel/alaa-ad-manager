@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../prisma/prisma.service';
 import { createTestPrisma } from '../testing/test-prisma';
 import {
+  AccountLockedError,
   AccountSuspendedError,
   InvalidCredentialsError,
   InvalidSessionError,
@@ -104,6 +105,72 @@ describe('AuthService (real PostgreSQL, test database)', () => {
       await createUser('SUSPENDED');
       await expect(auth.login('owner@alaa.test', PASSWORD)).rejects.toThrow(AccountSuspendedError);
       expect(await prisma.session.count()).toBe(0);
+    });
+  });
+
+  describe('brute-force protection (account lock)', () => {
+    async function failTimes(count: number) {
+      for (let i = 0; i < count; i += 1) {
+        await auth.login('owner@alaa.test', 'wrong password!!').catch(() => undefined);
+      }
+    }
+
+    it('counts wrong passwords but does not lock before 5', async () => {
+      await createUser();
+      await failTimes(4);
+      const user = await prisma.user.findFirstOrThrow();
+      expect(user.failedLoginAttempts).toBe(4);
+      expect(user.lockedUntil).toBeNull();
+    });
+
+    it('locks the account for 15 minutes on the 5th wrong password', async () => {
+      await createUser();
+      await failTimes(4);
+      const before = Date.now();
+      await expect(auth.login('owner@alaa.test', 'wrong password!!')).rejects.toThrow(
+        AccountLockedError,
+      );
+
+      const user = await prisma.user.findFirstOrThrow();
+      expect(user.failedLoginAttempts).toBe(0);
+      const lockMs = (user.lockedUntil?.getTime() ?? 0) - before;
+      expect(lockMs).toBeGreaterThan(14 * 60 * 1000);
+      expect(lockMs).toBeLessThanOrEqual(15 * 60 * 1000 + 5000);
+    });
+
+    it('refuses even the CORRECT password while locked, and creates no session', async () => {
+      await createUser();
+      await failTimes(5);
+      await expect(auth.login('owner@alaa.test', PASSWORD)).rejects.toThrow(AccountLockedError);
+      expect(await prisma.session.count()).toBe(0);
+    });
+
+    it('allows login again after the lock expires, and resets the counters', async () => {
+      await createUser();
+      await failTimes(5);
+      await prisma.user.updateMany({ data: { lockedUntil: new Date(Date.now() - 1000) } });
+
+      await expect(auth.login('owner@alaa.test', PASSWORD)).resolves.toBeDefined();
+      const user = await prisma.user.findFirstOrThrow();
+      expect(user.lockedUntil).toBeNull();
+      expect(user.failedLoginAttempts).toBe(0);
+    });
+
+    it('a successful login resets the counter', async () => {
+      await createUser();
+      await failTimes(3);
+      await auth.login('owner@alaa.test', PASSWORD);
+      expect((await prisma.user.findFirstOrThrow()).failedLoginAttempts).toBe(0);
+    });
+
+    it('counts parallel wrong attempts correctly', async () => {
+      await createUser();
+      await Promise.all(
+        Array.from({ length: 4 }, () =>
+          auth.login('owner@alaa.test', 'wrong password!!').catch(() => undefined),
+        ),
+      );
+      expect((await prisma.user.findFirstOrThrow()).failedLoginAttempts).toBe(4);
     });
   });
 

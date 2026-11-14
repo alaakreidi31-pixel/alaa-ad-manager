@@ -5,6 +5,7 @@ import { AccessTokenGuard } from './access-token.guard';
 import { ACCESS_TOKEN_TTL_SECONDS } from './auth.constants';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthRateLimiter, LoginRateLimitGuard } from './login-rate-limit.guard';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { AuthService } from './auth.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AccessTokenGuard],
+  providers: [AuthService, AccessTokenGuard, AuthRateLimiter, LoginRateLimitGuard],
   exports: [AuthService, AccessTokenGuard],
 })
 export class AuthModule {}

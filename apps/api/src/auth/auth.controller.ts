@@ -5,6 +5,8 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
+  HttpException,
+  HttpStatus,
   Post,
   Req,
   Res,
@@ -15,7 +17,13 @@ import { z } from 'zod';
 import { env } from '../config/env';
 import { AccessTokenGuard } from './access-token.guard';
 import { REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH } from './auth.constants';
-import { AccountSuspendedError, InvalidCredentialsError, InvalidSessionError } from './auth.errors';
+import {
+  AccountLockedError,
+  AccountSuspendedError,
+  InvalidCredentialsError,
+  InvalidSessionError,
+} from './auth.errors';
+import { LoginRateLimitGuard } from './login-rate-limit.guard';
 import { AuthService, type IssuedTokens } from './auth.service';
 import type { AuthRequest, AuthResponse, AuthenticatedRequest, CookieOptions } from './auth.types';
 import { readCookie } from './tokens';
@@ -40,6 +48,9 @@ function toHttpError(error: unknown): Error {
   if (error instanceof InvalidCredentialsError || error instanceof InvalidSessionError) {
     return new UnauthorizedException(error.message);
   }
+  if (error instanceof AccountLockedError) {
+    return new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);
+  }
   if (error instanceof AccountSuspendedError) {
     return new ForbiddenException(error.message);
   }
@@ -52,6 +63,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
+  @UseGuards(LoginRateLimitGuard)
   async login(
     @Body() body: unknown,
     @Req() req: AuthRequest,
@@ -74,6 +86,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(200)
+  @UseGuards(LoginRateLimitGuard)
   async refresh(@Req() req: AuthRequest, @Res({ passthrough: true }) res: AuthResponse) {
     const token = readCookie(req.headers.cookie, REFRESH_COOKIE_NAME);
     if (!token) throw new UnauthorizedException('Session is invalid or expired');

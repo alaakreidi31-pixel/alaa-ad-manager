@@ -41,6 +41,10 @@ model User {
   // timestamptz: an exact instant, stored in UTC (ADR 0007)
   createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  // Brute-force protection (ADR 0012): consecutive wrong passwords, and
+  // the time until which login is refused after too many of them.
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until") @db.Timestamptz(3)
   sessions     Session[]
 
   @@map("users")

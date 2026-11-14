@@ -22,3 +22,10 @@ export class InvalidSessionError extends Error {
 // A refresh token that was already used came back: it may have been stolen.
 // Same public message as InvalidSessionError.
 export class RefreshTokenReuseError extends InvalidSessionError {}
+
+// Too many wrong passwords: the account is temporarily locked (ADR 0012).
+export class AccountLockedError extends Error {
+  constructor() {
+    super('Too many attempts. Please try again later.');
+  }
+}

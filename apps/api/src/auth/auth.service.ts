@@ -5,8 +5,14 @@ import type { UserRole } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeEmail } from '../users/email';
 import { hashPassword, verifyPassword } from './password';
-import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_MS } from './auth.constants';
 import {
+  ACCESS_TOKEN_TTL_SECONDS,
+  LOCKOUT_DURATION_MS,
+  MAX_FAILED_LOGIN_ATTEMPTS,
+  REFRESH_TOKEN_TTL_MS,
+} from './auth.constants';
+import {
+  AccountLockedError,
   AccountSuspendedError,
   InvalidCredentialsError,
   InvalidSessionError,
@@ -56,14 +62,43 @@ export class AuthService {
       await verifyPassword(await this.dummyHash, password);
       throw new InvalidCredentialsError();
     }
+    // While locked, the password is not checked at all (ADR 0012).
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      throw new AccountLockedError();
+    }
     if (!(await verifyPassword(user.passwordHash, password))) {
+      if (await this.recordFailedLogin(user.id)) throw new AccountLockedError();
       throw new InvalidCredentialsError();
     }
     if (user.status !== 'ACTIVE') {
       throw new AccountSuspendedError();
     }
 
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
+    }
     return this.startSession(user, userAgent);
+  }
+
+  // Counts a wrong password. The increment is atomic in PostgreSQL, so
+  // parallel attempts are all counted. On the last allowed attempt, locks the
+  // account and restarts the counter. Returns true when this attempt locked it.
+  private async recordFailedLogin(userId: string): Promise<boolean> {
+    const { failedLoginAttempts } = await this.prisma.user.update({
+      where: { id: userId },
+      data: { failedLoginAttempts: { increment: 1 } },
+      select: { failedLoginAttempts: true },
+    });
+    if (failedLoginAttempts < MAX_FAILED_LOGIN_ATTEMPTS) return false;
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { failedLoginAttempts: 0, lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS) },
+    });
+    return true;
   }
 
   // Rotation: every refresh token works once. Using an old one again means it
