@@ -9,7 +9,9 @@
     "start": "node dist/main.js",
     "typecheck": "prisma generate && tsc --noEmit -p tsconfig.json",
     "prisma:generate": "prisma generate",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:db": "prisma generate && vitest run --config vitest.db.config.ts",
+    "test:rollback": "prisma generate && vitest run --config vitest.rollback.config.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
