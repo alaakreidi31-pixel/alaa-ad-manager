@@ -160,6 +160,8 @@ model Client {
   campaigns        Campaign[]
   // Fee plans of this client, history included (ADR 0019)
   feePlans         FeePlan[]
+  // Fee invoices of this client (ADR 0020)
+  invoices         Invoice[]
 
   @@index([status, createdAt])
   @@map("clients")
@@ -249,6 +251,7 @@ model Currency {
   code       String    @id @db.Char(3)
   minorUnits Int       @map("minor_units") @db.SmallInt
   feePlans   FeePlan[]
+  invoices   Invoice[]
 
   @@map("currencies")
 }
@@ -264,6 +267,7 @@ model FeePlan {
   client             Client    @relation(fields: [clientId], references: [id], onDelete: Restrict)
   currency           String    @db.Char(3)
   currencyRef        Currency  @relation(fields: [currency], references: [code], onDelete: Restrict, onUpdate: Restrict)
+  invoices           Invoice[]
   // Minor units (cents): 300.00 USD = 30000 (ADR 0008)
   fixedFeeMinor      BigInt    @default(0) @map("fixed_fee_minor")
   // Basis points: 10% = 1000, 7.5% = 750
@@ -280,4 +284,80 @@ model FeePlan {
 
   @@index([clientId, startsOn])
   @@map("fee_plans")
+}
+
+// DRAFT -> ISSUED -> VOID (ADR 0020). Paid / partly paid is computed from
+// the payments, never stored.
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  VOID
+
+  @@map("invoice_status")
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CASH
+  CARD
+  OTHER
+
+  @@map("payment_method")
+}
+
+// The agency fee of one client for one ended month (ADR 0020). Enforced by
+// PostgreSQL: amounts equal monthly_fee_minor and copy the fee plan; the
+// number (AMG-YYYY-NNNN, no gaps) and dates are set by the database when
+// issued; an issued invoice never changes (void + new invoice); no delete.
+// The yearly number counters (invoice_number_counters) are not readable by
+// the application, so they have no model here.
+model Invoice {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId           String        @map("client_id") @db.Uuid
+  client             Client        @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  feePlanId          String        @map("fee_plan_id") @db.Uuid
+  feePlan            FeePlan       @relation(fields: [feePlanId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  // First day of the invoiced month
+  periodMonth        DateTime      @map("period_month") @db.Date
+  currency           String        @db.Char(3)
+  currencyRef        Currency      @relation(fields: [currency], references: [code], onDelete: Restrict, onUpdate: Restrict)
+  // Snapshot at the time of the draft (minor units)
+  spendMinor         Decimal       @map("spend_minor") @db.Decimal(30, 0)
+  fixedFeeMinor      BigInt        @map("fixed_fee_minor")
+  percentBasisPoints Int           @map("percent_basis_points")
+  minimumFeeMinor    BigInt?       @map("minimum_fee_minor")
+  variableFeeMinor   BigInt        @map("variable_fee_minor")
+  totalMinor         BigInt        @map("total_minor")
+  status             InvoiceStatus @default(DRAFT)
+  number             String?       @unique
+  issuedAt           DateTime?     @map("issued_at") @db.Timestamptz(3)
+  dueOn              DateTime?     @map("due_on") @db.Date
+  voidedAt           DateTime?     @map("voided_at") @db.Timestamptz(3)
+  voidReason         String?       @map("void_reason")
+  notes              String?
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  payments           Payment[]
+
+  @@index([status, dueOn])
+  @@map("invoices")
+}
+
+// A payment of an issued invoice; partial payments allowed, never above the
+// total. Never changed nor deleted: voided with a reason (ADR 0020).
+model Payment {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceId   String        @map("invoice_id") @db.Uuid
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  amountMinor BigInt        @map("amount_minor")
+  paidOn      DateTime      @map("paid_on") @db.Date
+  method      PaymentMethod
+  reference   String?
+  voidedAt    DateTime?     @map("voided_at") @db.Timestamptz(3)
+  voidReason  String?       @map("void_reason")
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([invoiceId])
+  @@map("payments")
 }

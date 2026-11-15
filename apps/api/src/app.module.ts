@@ -6,6 +6,7 @@ import { ClientsModule } from './clients/clients.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { FeesModule } from './fees/fees.module';
 import { HealthModule } from './health/health.module';
+import { InvoicesModule } from './invoices/invoices.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 // Root module: every feature module of the API is registered here.
@@ -19,6 +20,7 @@ import { PrismaModule } from './prisma/prisma.module';
     CampaignsModule,
     DashboardModule,
     FeesModule,
+    InvoicesModule,
   ],
 })
 export class AppModule {}

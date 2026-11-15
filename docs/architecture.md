@@ -78,6 +78,13 @@
 | `POST /api/admin/clients/:id/fee-plans`                                                    | خطة جديدة: تُغلق الخطة المفتوحة، وتبدأ من الشهر القادم على الأقرب                                               |
 | `POST /api/admin/clients/:id/fee-plans/:planId/cancel`                                     | إلغاء خطة لم تبدأ بعد                                                                                          |
 | `GET /api/admin/clients/:id/fees`                                                          | أتعاب كل شهر (`from` و`to` بصيغة `YYYY-MM`)، مع تنبيهات العملات المختلفة                                       |
+| `GET /api/admin/invoices`                                                                  | الفواتير مع حالة الدفع: `status` و`clientId` و`page`                                                           |
+| `POST /api/admin/invoices/prepare`                                                         | تجهيز المسودات الناقصة وتحديث إنفاق المسودات                                                                   |
+| `GET /api/admin/invoices/:id`                                                              | الفاتورة ودفعاتها، وهل تغيّر الإنفاق بعد إصدارها                                                                |
+| `POST /api/admin/invoices/:id/issue`                                                       | إصدار: الرقم والتاريخ من PostgreSQL، و`dueOn` اختياري                                                          |
+| `POST /api/admin/invoices/:id/void`                                                        | إلغاء مع `reason` (مسودة، أو مُصدرة بلا دفعات فعّالة)                                                            |
+| `POST /api/admin/invoices/:id/payments`                                                    | تسجيل دفعة: `amount` و`paidOn` و`method` و`reference`                                                          |
+| `POST /api/admin/payments/:paymentId/void`                                                 | إلغاء دفعة مع `reason`                                                                                         |
 | `GET /api/admin/clients/:id/users`                                                         | حسابات دخول العميل                                                                                             |
 | `POST /api/admin/clients/:id/users`                                                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة                                                             |
 | `POST /api/admin/clients/:id/users/:userId/reset-password`                                 | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب                                                                   |
@@ -122,6 +129,10 @@
 **الحماية من التخمين ([ADR 0012](decisions/0012-brute-force-protection.md)):** 5 كلمات مرور خاطئة متتالية تقفل الحساب 15 دقيقة (العمودان `failed_login_attempts` و`locked_until` في `users`)، و`login` و`refresh` محدودان بـ 10 طلبات في الدقيقة لكل IP. الرد في الحالتين 429.
 
 **التحقق بخطوتين ([ADR 0013](decisions/0013-two-factor-authentication.md)):** إذا كان الحساب يستخدم 2FA، يعيد `login` تذكرة مؤقتة (5 دقائق) بدل الجلسة، وتُفتح الجلسة بعد `2fa/verify`. حساب `SUPER_ADMIN` دون 2FA يُرفض (403). خوارزمية TOTP في `apps/api/src/auth/totp.ts`، والتشفير AES-256-GCM في `secret-box.ts`، والتفعيل بالأمر `pnpm admin:setup-2fa`.
+
+### جداول `invoices` و`payments` و`invoice_number_counters` (migration `20261116090000_create_invoices`)
+
+- الفواتير والمدفوعات، وعدّاد الترقيم السنوي الذي لا يصل إليه التطبيق. كل القواعد داخل PostgreSQL. انظر [ADR 0020](decisions/0020-invoices-and-payments.md).
 
 ### جدولا `fee_plans` و`currencies` (migration `20261115200000_create_fee_plans`)
 
@@ -217,7 +228,7 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (340 اختباراً)
+## الاختبارات الموجودة (350 اختباراً)
 
 | الملف                                                     | العدد       | ماذا يحمي                                                                                                               |
 | --------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -265,6 +276,9 @@ alaa-ad-manager/
 | `apps/api/src/fees/fee-plans.http.db-spec.ts`             | 2           | عبر HTTP: 401 و403، ورموز الأخطاء، ولا مسار للتعديل أو الحذف                                                            |
 | `apps/api/src/fees/currencies.db-spec.ts`                 | 2           | قائمة العملات في القاعدة مطابقة لـ `money.ts`                                                                           |
 | `apps/web/src/lib/fees-api.test.ts`                       | 1           | حساب أشهر الخطط في الواجهة                                                                                              |
+| `apps/api/src/invoices/invoices.database.db-spec.ts`      | 1 (58 فحصاً) | قواعد الفواتير والمدفوعات داخل PostgreSQL: المبالغ، والترقيم بلا فراغات، والحالات، والدفعات، ولا حذف                    |
+| `apps/api/src/invoices/invoices.service.db-spec.ts`       | 7           | المسودات، والإصدار، والترقيم، والدفعات الجزئية، والإلغاء، والفاتورة البديلة                                             |
+| `apps/api/src/invoices/invoices.http.db-spec.ts`          | 2           | عبر HTTP: 401 و403 على كل مسار، ورموز الأخطاء، ولا مسار للتعديل أو الحذف                                                |
 | `apps/web/src/i18n/locales.test.ts`                       | 3           | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                                               |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.

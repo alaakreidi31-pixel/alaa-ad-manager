@@ -43,6 +43,12 @@ export type AuditAction =
   | 'admin.fee_plan.created'
   | 'admin.fee_plan.closed'
   | 'admin.fee_plan.cancelled'
+  // Invoices and payments (ADR 0020): number and amounts in metadata.
+  | 'admin.invoice.drafts_prepared'
+  | 'admin.invoice.issued'
+  | 'admin.invoice.voided'
+  | 'admin.payment.recorded'
+  | 'admin.payment.voided'
   // Correct temporary password: the user must now choose a new one.
   | 'auth.login.password_change_required'
   | 'auth.password.changed';

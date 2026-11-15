@@ -26,6 +26,14 @@ import {
   FeePlanStartsTooEarlyError,
   FeePlanValidationError,
 } from '../fees/fee-plans.errors';
+import {
+  InvoiceHasPaymentsError,
+  InvoiceNotFoundError,
+  InvoiceStateError,
+  InvoiceValidationError,
+  PaymentExceedsTotalError,
+  PaymentNotFoundError,
+} from '../invoices/invoices.errors';
 import type { Actor } from './clients.service';
 
 const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] = [
@@ -46,6 +54,11 @@ const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] 
   [FeePlanOverlapError, HttpStatus.CONFLICT, 'fee_plan_overlap'],
   [FeePlanStartsTooEarlyError, HttpStatus.CONFLICT, 'fee_plan_starts_too_early'],
   [FeePlanCannotCancelError, HttpStatus.CONFLICT, 'fee_plan_cannot_cancel'],
+  [InvoiceNotFoundError, HttpStatus.NOT_FOUND, 'invoice_not_found'],
+  [PaymentNotFoundError, HttpStatus.NOT_FOUND, 'payment_not_found'],
+  [InvoiceStateError, HttpStatus.CONFLICT, 'invoice_state'],
+  [InvoiceHasPaymentsError, HttpStatus.CONFLICT, 'invoice_has_payments'],
+  [PaymentExceedsTotalError, HttpStatus.CONFLICT, 'payment_exceeds_total'],
 ];
 
 // Turns expected failures into HTTP answers with a stable "code" for the web app.
@@ -53,7 +66,8 @@ export function toHttpError(error: unknown): Error {
   if (
     error instanceof ClientValidationError ||
     error instanceof CampaignValidationError ||
-    error instanceof FeePlanValidationError
+    error instanceof FeePlanValidationError ||
+    error instanceof InvoiceValidationError
   ) {
     return new HttpException(
       { statusCode: 400, message: error.message, code: 'invalid_input', fields: error.fields },

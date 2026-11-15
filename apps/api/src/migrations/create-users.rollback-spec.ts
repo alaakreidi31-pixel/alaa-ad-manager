@@ -98,6 +98,8 @@ describe('rollback of every migration (test database only)', () => {
       expect(await app.campaignDailyMetric.count()).toBeTypeOf('number');
       expect(await app.feePlan.count()).toBeTypeOf('number');
       expect(await app.currency.count()).toBe(154);
+      expect(await app.invoice.count()).toBeTypeOf('number');
+      expect(await app.payment.count()).toBeTypeOf('number');
     } finally {
       await app.$disconnect();
     }
