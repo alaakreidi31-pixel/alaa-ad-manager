@@ -1,10 +1,12 @@
 import { z } from 'zod';
+import { CURRENCY_CODES } from '../money/currencies';
 
 // Validation of the client fields (ADR 0016). The database checks the most
 // important rules again (CHECK constraints in the migration).
 
 const TIME_ZONES = new Set(['UTC', ...Intl.supportedValuesOf('timeZone')]);
-const CURRENCIES = new Set(Intl.supportedValuesOf('currency'));
+// ISO 4217 list shared with the database (ADR 0019).
+const CURRENCIES = CURRENCY_CODES;
 
 // Optional text: spaces trimmed, empty text stored as null ("cleared").
 const optionalText = (max: number) =>

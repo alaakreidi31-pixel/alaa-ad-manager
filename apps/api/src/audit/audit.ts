@@ -39,6 +39,10 @@ export type AuditAction =
   | 'admin.campaign_metrics.saved'
   // A CSV file of daily numbers was imported (counts in metadata).
   | 'admin.campaign_metrics.imported'
+  // Fee plans (ADR 0019): terms on creation; before/after on close or cancel.
+  | 'admin.fee_plan.created'
+  | 'admin.fee_plan.closed'
+  | 'admin.fee_plan.cancelled'
   // Correct temporary password: the user must now choose a new one.
   | 'auth.login.password_change_required'
   | 'auth.password.changed';

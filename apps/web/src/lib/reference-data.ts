@@ -292,8 +292,12 @@ const FIRST_CURRENCIES = [
   'TRY',
 ];
 
+// Superseded ISO 4217 codes and units of account: refused by the API
+// (the database list, ADR 0019), so never offered.
+const NOT_OFFERED = new Set(['HRK', 'BGN', 'ZWL', 'SLL', 'ANG', 'CUC', 'XDR', 'XSU']);
+
 export function currencyOptions(language: string): Option[] {
-  const all = Intl.supportedValuesOf('currency');
+  const all = Intl.supportedValuesOf('currency').filter((code) => !NOT_OFFERED.has(code));
   const rest = all.filter((code) => !FIRST_CURRENCIES.includes(code));
   return [...FIRST_CURRENCIES.filter((code) => all.includes(code)), ...rest].map((code) => ({
     value: code,

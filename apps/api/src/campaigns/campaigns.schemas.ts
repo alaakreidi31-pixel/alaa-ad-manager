@@ -1,9 +1,11 @@
 import { z } from 'zod';
+import { CURRENCY_CODES } from '../money/currencies';
 
 // Validation of the campaign fields (ADR 0018). The database checks the most
 // important rules again (CHECK constraints in the migration).
 
-const CURRENCIES = new Set(Intl.supportedValuesOf('currency'));
+// ISO 4217 list shared with the database (ADR 0019).
+const CURRENCIES = CURRENCY_CODES;
 
 const optionalText = (max: number) =>
   z

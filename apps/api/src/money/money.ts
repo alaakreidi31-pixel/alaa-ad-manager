@@ -1,3 +1,5 @@
+import { CURRENCY_MINOR_UNITS } from './currencies';
+
 // Money helpers (ADR 0008): amounts are stored as WHOLE numbers in the
 // smallest unit of their currency (cents for USD: 12.50 USD = 1250), and
 // travel as decimal TEXT ("12.50"). No float is ever used.
@@ -8,12 +10,12 @@ export class MoneyFormatError extends Error {
   }
 }
 
-// Decimals of a currency: 2 for USD and SAR, 0 for JPY, 3 for KWD.
+// Decimals of a currency, from ISO 4217 (currencies.ts, the same list as
+// the database table "currencies"): 2 for USD, 0 for JPY, 3 for KWD.
 export function currencyDigits(currency: string): number {
-  return (
-    new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions()
-      .maximumFractionDigits ?? 2
-  );
+  const digits = CURRENCY_MINOR_UNITS[currency];
+  if (digits === undefined) throw new MoneyFormatError(`${currency} is not a supported currency`);
+  return digits;
 }
 
 const AMOUNT = /^(\d{1,15})(?:\.(\d+))?$/;

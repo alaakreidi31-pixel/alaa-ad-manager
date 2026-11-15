@@ -30,6 +30,8 @@ import { ClientsController } from '../clients/clients.controller';
 import { ClientsService } from '../clients/clients.service';
 import { DashboardController } from '../dashboard/dashboard.controller';
 import { DashboardService } from '../dashboard/dashboard.service';
+import { FeePlansController } from '../fees/fee-plans.controller';
+import { FeePlansService } from '../fees/fee-plans.service';
 import type { PrismaClient } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -64,6 +66,7 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       CampaignImportController,
       ClientCampaignsController,
       DashboardController,
+      FeePlansController,
     ],
     providers: [
       { provide: PrismaService, useValue: db },
@@ -80,6 +83,7 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
         useValue: new ClientCampaignsService(db, new CampaignMetricsService(db)),
       },
       { provide: DashboardService, useValue: new DashboardService(db) },
+      { provide: FeePlansService, useValue: new FeePlansService(db) },
       AccessTokenGuard,
       SuperAdminGuard,
       ClientUserGuard,

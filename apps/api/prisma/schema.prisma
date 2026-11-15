@@ -158,6 +158,8 @@ model Client {
   users            User[]
   // Meta and Google campaigns of this client (ADR 0018)
   campaigns        Campaign[]
+  // Fee plans of this client, history included (ADR 0019)
+  feePlans         FeePlan[]
 
   @@index([status, createdAt])
   @@map("clients")
@@ -239,4 +241,43 @@ model CampaignDailyMetric {
 
   @@unique([campaignId, date])
   @@map("campaign_daily_metrics")
+}
+
+// ISO 4217 currencies with their minor units (ADR 0019). Read only for the
+// application; the same list as src/money/currencies.ts (checked by a test).
+model Currency {
+  code       String    @id @db.Char(3)
+  minorUnits Int       @map("minor_units") @db.SmallInt
+  feePlans   FeePlan[]
+
+  @@map("currencies")
+}
+
+// The agency fees of a client for a period of whole months (ADR 0019).
+// Enforced by PostgreSQL (see the migration): no overlap between active
+// plans (exclusion constraint), terms never change, closed once at the end
+// of the current month at the earliest, cancelled only before it starts,
+// never deleted.
+model FeePlan {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId           String    @map("client_id") @db.Uuid
+  client             Client    @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  currency           String    @db.Char(3)
+  currencyRef        Currency  @relation(fields: [currency], references: [code], onDelete: Restrict, onUpdate: Restrict)
+  // Minor units (cents): 300.00 USD = 30000 (ADR 0008)
+  fixedFeeMinor      BigInt    @default(0) @map("fixed_fee_minor")
+  // Basis points: 10% = 1000, 7.5% = 750
+  percentBasisPoints Int       @default(0) @map("percent_basis_points")
+  // Applies to the TOTAL (fixed + percentage); null = no minimum
+  minimumFeeMinor    BigInt?   @map("minimum_fee_minor")
+  // First day of a month
+  startsOn           DateTime  @map("starts_on") @db.Date
+  // Last day of a month; null = still running
+  endsOn             DateTime? @map("ends_on") @db.Date
+  cancelledAt        DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([clientId, startsOn])
+  @@map("fee_plans")
 }

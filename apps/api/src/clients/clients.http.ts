@@ -19,6 +19,13 @@ import {
   InvalidClientStatusChangeError,
   InvalidUserStatusChangeError,
 } from './clients.errors';
+import {
+  FeePlanCannotCancelError,
+  FeePlanNotFoundError,
+  FeePlanOverlapError,
+  FeePlanStartsTooEarlyError,
+  FeePlanValidationError,
+} from '../fees/fee-plans.errors';
 import type { Actor } from './clients.service';
 
 const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] = [
@@ -35,11 +42,19 @@ const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] 
   [CurrencyLockedError, HttpStatus.CONFLICT, 'currency_locked'],
   [FutureDayError, HttpStatus.BAD_REQUEST, 'future_day'],
   [ImportHasErrorsError, HttpStatus.CONFLICT, 'import_has_errors'],
+  [FeePlanNotFoundError, HttpStatus.NOT_FOUND, 'fee_plan_not_found'],
+  [FeePlanOverlapError, HttpStatus.CONFLICT, 'fee_plan_overlap'],
+  [FeePlanStartsTooEarlyError, HttpStatus.CONFLICT, 'fee_plan_starts_too_early'],
+  [FeePlanCannotCancelError, HttpStatus.CONFLICT, 'fee_plan_cannot_cancel'],
 ];
 
 // Turns expected failures into HTTP answers with a stable "code" for the web app.
 export function toHttpError(error: unknown): Error {
-  if (error instanceof ClientValidationError || error instanceof CampaignValidationError) {
+  if (
+    error instanceof ClientValidationError ||
+    error instanceof CampaignValidationError ||
+    error instanceof FeePlanValidationError
+  ) {
     return new HttpException(
       { statusCode: 400, message: error.message, code: 'invalid_input', fields: error.fields },
       HttpStatus.BAD_REQUEST,
