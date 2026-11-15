@@ -1,6 +1,13 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { AuthenticatedRequest } from '../auth/auth.types';
 import {
+  CampaignArchivedError,
+  CampaignNotFoundError,
+  CampaignValidationError,
+  ExternalIdTakenError,
+  InvalidCampaignStatusChangeError,
+} from '../campaigns/campaigns.errors';
+import {
   ClientArchivedError,
   ClientNotFoundError,
   ClientUserNotFoundError,
@@ -18,11 +25,15 @@ const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] 
   [InvalidClientStatusChangeError, HttpStatus.CONFLICT, 'invalid_status_change'],
   [InvalidUserStatusChangeError, HttpStatus.CONFLICT, 'invalid_status_change'],
   [EmailTakenError, HttpStatus.CONFLICT, 'email_taken'],
+  [CampaignNotFoundError, HttpStatus.NOT_FOUND, 'campaign_not_found'],
+  [CampaignArchivedError, HttpStatus.CONFLICT, 'campaign_archived'],
+  [InvalidCampaignStatusChangeError, HttpStatus.CONFLICT, 'invalid_status_change'],
+  [ExternalIdTakenError, HttpStatus.CONFLICT, 'external_id_taken'],
 ];
 
 // Turns expected failures into HTTP answers with a stable "code" for the web app.
 export function toHttpError(error: unknown): Error {
-  if (error instanceof ClientValidationError) {
+  if (error instanceof ClientValidationError || error instanceof CampaignValidationError) {
     return new HttpException(
       { statusCode: 400, message: error.message, code: 'invalid_input', fields: error.fields },
       HttpStatus.BAD_REQUEST,

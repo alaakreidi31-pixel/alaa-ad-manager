@@ -31,6 +31,10 @@ export type AuditAction =
   | 'admin.client_user.created'
   | 'admin.client_user.password_reset'
   | 'admin.client_user.status_changed'
+  // Campaigns (ADR 0018): metadata.clientId and metadata.campaignId.
+  | 'admin.campaign.created'
+  | 'admin.campaign.updated'
+  | 'admin.campaign.status_changed'
   // Correct temporary password: the user must now choose a new one.
   | 'auth.login.password_change_required'
   | 'auth.password.changed';

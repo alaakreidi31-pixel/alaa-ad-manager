@@ -51,21 +51,26 @@
 
 كلها لـ `SUPER_ADMIN` فقط (`AccessTokenGuard` ثم `SuperAdminGuard`). حساب العميل يحصل على 403.
 
-| النقطة                                                     | الوظيفة                                                 |
-| ---------------------------------------------------------- | ------------------------------------------------------- |
-| `GET /api/admin/dashboard`                                 | ملخص اللوحة: العملاء والحسابات حسب الحالة، وآخر 5 عملاء |
-| `GET /api/admin/clients`                                   | القائمة: `search` و`status` و`page` و`pageSize`         |
-| `POST /api/admin/clients`                                  | إضافة عميل                                              |
-| `GET /api/admin/clients/:id`                               | تفاصيل عميل                                             |
-| `PATCH /api/admin/clients/:id`                             | تعديل (مرفوض للعميل المؤرشف)                            |
-| `POST /api/admin/clients/:id/suspend`                      | إيقاف مؤقت                                              |
-| `POST /api/admin/clients/:id/archive`                      | أرشفة                                                   |
-| `POST /api/admin/clients/:id/activate`                     | إعادة تفعيل                                             |
-| `GET /api/admin/clients/:id/users`                         | حسابات دخول العميل                                      |
-| `POST /api/admin/clients/:id/users`                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة      |
-| `POST /api/admin/clients/:id/users/:userId/reset-password` | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب            |
-| `POST /api/admin/clients/:id/users/:userId/suspend`        | إيقاف حساب واحد                                         |
-| `POST /api/admin/clients/:id/users/:userId/activate`       | إعادة تفعيل حساب                                        |
+| النقطة                                                                                     | الوظيفة                                                 |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `GET /api/admin/dashboard`                                                                 | ملخص اللوحة: العملاء والحسابات حسب الحالة، وآخر 5 عملاء |
+| `GET /api/admin/clients`                                                                   | القائمة: `search` و`status` و`page` و`pageSize`         |
+| `POST /api/admin/clients`                                                                  | إضافة عميل                                              |
+| `GET /api/admin/clients/:id`                                                               | تفاصيل عميل                                             |
+| `PATCH /api/admin/clients/:id`                                                             | تعديل (مرفوض للعميل المؤرشف)                            |
+| `POST /api/admin/clients/:id/suspend`                                                      | إيقاف مؤقت                                              |
+| `POST /api/admin/clients/:id/archive`                                                      | أرشفة                                                   |
+| `POST /api/admin/clients/:id/activate`                                                     | إعادة تفعيل                                             |
+| `GET /api/admin/clients/:id/campaigns`                                                     | حملات العميل: `status` و`platform` و`page` و`pageSize`  |
+| `POST /api/admin/clients/:id/campaigns`                                                    | إضافة حملة Meta أو Google (مرفوض للعميل المؤرشف)        |
+| `GET /api/admin/clients/:id/campaigns/:campaignId`                                         | تفاصيل حملة                                             |
+| `PATCH /api/admin/clients/:id/campaigns/:campaignId`                                       | تعديل (مرفوض للحملة المؤرشفة)                           |
+| `POST /api/admin/clients/:id/campaigns/:campaignId/pause` و`/activate` و`/end` و`/archive` | تغيير حالة الحملة                                       |
+| `GET /api/admin/clients/:id/users`                                                         | حسابات دخول العميل                                      |
+| `POST /api/admin/clients/:id/users`                                                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة      |
+| `POST /api/admin/clients/:id/users/:userId/reset-password`                                 | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب            |
+| `POST /api/admin/clients/:id/users/:userId/suspend`                                        | إيقاف حساب واحد                                         |
+| `POST /api/admin/clients/:id/users/:userId/activate`                                       | إعادة تفعيل حساب                                        |
 
 ## بوابة العميل (`/api/client`)
 
@@ -102,6 +107,12 @@
 **الحماية من التخمين ([ADR 0012](decisions/0012-brute-force-protection.md)):** 5 كلمات مرور خاطئة متتالية تقفل الحساب 15 دقيقة (العمودان `failed_login_attempts` و`locked_until` في `users`)، و`login` و`refresh` محدودان بـ 10 طلبات في الدقيقة لكل IP. الرد في الحالتين 429.
 
 **التحقق بخطوتين ([ADR 0013](decisions/0013-two-factor-authentication.md)):** إذا كان الحساب يستخدم 2FA، يعيد `login` تذكرة مؤقتة (5 دقائق) بدل الجلسة، وتُفتح الجلسة بعد `2fa/verify`. حساب `SUPER_ADMIN` دون 2FA يُرفض (403). خوارزمية TOTP في `apps/api/src/auth/totp.ts`، والتشفير AES-256-GCM في `secret-box.ts`، والتفعيل بالأمر `pnpm admin:setup-2fa`.
+
+### جدول `campaigns` (migration `20261115140000_create_campaigns`)
+
+- حملات Meta وGoogle لكل عميل. لا حذف: الحملة تُؤرشف، و`alaa_app` لا يملك `DELETE`. انظر [ADR 0018](decisions/0018-campaigns.md).
+- الميزانية اليومية `daily_budget_minor` عدد صحيح بأصغر وحدة للعملة ([ADR 0008](decisions/0008-money-as-integer-minor-units.md)).
+- `external_id` (رقم الحملة في المنصة) لا يتكرر للعميل نفسه على المنصة نفسها.
 
 ### جدول `clients` (migration `20261115090000_create_clients`)
 
@@ -182,7 +193,7 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (254 اختباراً)
+## الاختبارات الموجودة (292 اختباراً)
 
 | الملف                                                   | العدد | ماذا يحمي                                                                                   |
 | ------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
@@ -215,6 +226,10 @@ alaa-ad-manager/
 | `apps/api/src/clients/client-accounts.db-spec.ts`       | 17    | حسابات العملاء: كلمة المرور المؤقتة، والتغيير الإجباري، وإيقاف العميل وأرشفته، وIDOR        |
 | `apps/api/src/clients/client-portal.http.db-spec.ts`    | 7     | عبر HTTP: كل عميل يرى بياناته فقط، بلا ملاحظات داخلية، وIDOR بين عميلين                     |
 | `apps/api/src/dashboard/dashboard.http.db-spec.ts`      | 4     | لوحة الإدارة: 401 و403، وأعداد حقيقية من القاعدة، وبلا ملاحظات داخلية                       |
+| `apps/api/src/money/money.spec.ts`                      | 9     | المبالغ بأصغر وحدة للعملة (سنت، ين، فلس) بلا أي float                                       |
+| `apps/api/src/campaigns/campaigns.schemas.spec.ts`      | 11    | التحقق من بيانات الحملة: المنصة، والمبلغ، والتواريخ، ورفض الحقول غير المسموحة               |
+| `apps/api/src/campaigns/campaigns.service.db-spec.ts`   | 10    | الحملات: العملة، ورقم المنصة الفريد، والحالات، وIDOR، وسجل التدقيق، ومنع الحذف              |
+| `apps/api/src/campaigns/campaigns.http.db-spec.ts`      | 4     | عبر HTTP: 401 و403 على كل مسار، ورموز الأخطاء، وIDOR بين عميلين                             |
 | `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                   |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.

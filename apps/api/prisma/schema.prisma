@@ -156,7 +156,55 @@ model Client {
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
   // Login accounts of this client (step 2.2)
   users            User[]
+  // Meta and Google campaigns of this client (ADR 0018)
+  campaigns        Campaign[]
 
   @@index([status, createdAt])
   @@map("clients")
+}
+
+// Advertising platform of a campaign (ADR 0018).
+enum CampaignPlatform {
+  META
+  GOOGLE
+
+  @@map("campaign_platform")
+}
+
+// Campaigns are never deleted (like clients): they are ARCHIVED.
+enum CampaignStatus {
+  ACTIVE
+  PAUSED
+  // Finished: its numbers stay in the reports
+  ENDED
+  // Hidden from the lists, read-only
+  ARCHIVED
+
+  @@map("campaign_status")
+}
+
+// A Meta or Google campaign run by the agency for a client (ADR 0018).
+model Campaign {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId    String           @map("client_id") @db.Uuid
+  client      Client           @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  platform    CampaignPlatform
+  name        String
+  // The campaign id on Meta or Google; unique per client and platform
+  // (partial unique index in the migration). Used by the CSV import.
+  externalId  String?          @map("external_id")
+  // Free text, e.g. "Leads" or "Sales"
+  objective   String?
+  status      CampaignStatus   @default(ACTIVE)
+  // ISO 4217 currency of the ad account (may differ from the client's)
+  currency    String           @db.Char(3)
+  // Smallest unit of the currency, e.g. cents: 150.50 USD = 15050 (ADR 0008)
+  dailyBudgetMinor BigInt?     @map("daily_budget_minor")
+  startDate   DateTime?        @map("start_date") @db.Date
+  endDate     DateTime?        @map("end_date") @db.Date
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([clientId, status])
+  @@map("campaigns")
 }
