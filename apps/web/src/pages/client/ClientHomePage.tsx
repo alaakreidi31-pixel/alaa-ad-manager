@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/auth-context';
-import { ComingCard, StatCard } from '../../components/DashboardCards';
+import { StatCard } from '../../components/DashboardCards';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ui } from '../../components/ui';
 import { getMyClientProfile, type ClientProfile } from '../../lib/admin-api';
@@ -11,6 +11,7 @@ import {
   lastDays,
   type ClientCampaignSummary,
 } from '../../lib/campaigns-api';
+import { invoiceLabel, listMyInvoices } from '../../lib/invoices-api';
 
 // The client portal overview (step 3.3). Only the client's own company
 // (the id comes from the session, never from the page), without internal
@@ -22,6 +23,7 @@ export function ClientHomePage() {
   const [profile, setProfile] = useState<ClientProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<ClientCampaignSummary | null>(null);
+  const [unpaid, setUnpaid] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -31,6 +33,25 @@ export function ClientHomePage() {
       })
       .catch((caught: unknown) => {
         if (active) setError(caught instanceof ApiError ? caught.code : 'server_unreachable');
+      });
+    return () => {
+      active = false;
+    };
+  }, [api]);
+
+  // Its issued invoices not fully paid yet (step 6.3).
+  useEffect(() => {
+    let active = true;
+    listMyInvoices(api)
+      .then((items) => {
+        if (!active) return;
+        const open = items.filter((item) =>
+          ['unpaid', 'partial', 'overdue'].includes(invoiceLabel(item)),
+        );
+        setUnpaid(open.length);
+      })
+      .catch(() => {
+        // The company card already shows a connection problem.
       });
     return () => {
       active = false;
@@ -123,10 +144,10 @@ export function ClientHomePage() {
           note={t('clientPortal.seeCampaigns')}
           icon="tasks"
         />
-        <ComingCard
+        <StatCard
           label={t('clientPortal.dueInvoices')}
-          note={t('clientPortal.soon')}
-          phase={6}
+          value={unpaid ?? '…'}
+          note={t('clientPortal.seeInvoices')}
           icon="invoices"
         />
       </section>

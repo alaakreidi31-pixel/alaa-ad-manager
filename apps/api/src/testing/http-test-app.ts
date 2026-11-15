@@ -32,6 +32,7 @@ import { DashboardController } from '../dashboard/dashboard.controller';
 import { DashboardService } from '../dashboard/dashboard.service';
 import { FeePlansController } from '../fees/fee-plans.controller';
 import { FeePlansService } from '../fees/fee-plans.service';
+import { ClientInvoicesController } from '../invoices/client-invoices.controller';
 import { InvoicesController } from '../invoices/invoices.controller';
 import { InvoicesService } from '../invoices/invoices.service';
 import type { PrismaClient } from '../generated/prisma/client';
@@ -70,6 +71,7 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       DashboardController,
       FeePlansController,
       InvoicesController,
+      ClientInvoicesController,
     ],
     providers: [
       { provide: PrismaService, useValue: db },

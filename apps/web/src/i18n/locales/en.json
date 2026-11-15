@@ -159,7 +159,7 @@
   },
   "clientPortal": {
     "company": "Your company",
-    "comingSoon": "Reports and invoices will appear here soon.",
+    "comingSoon": "Reports will appear here soon.",
     "subtitle": "{{company}} dashboard at ALAA MARKETING GROUP",
     "indicators": "Your campaign indicators",
     "spend": "Ad spend",
@@ -171,7 +171,8 @@
     "nextTitle": "Coming to your portal",
     "soon": "Coming soon",
     "last30": "Last 30 days",
-    "seeCampaigns": "See the Campaigns page"
+    "seeCampaigns": "See the Campaigns page",
+    "seeInvoices": "Invoices waiting for payment"
   },
   "apiErrors": {
     "invalid_input": "Some fields are invalid. Fix the ones marked in red.",
@@ -497,6 +498,24 @@
     "void": "Void invoice",
     "askVoidReason": "Why is this invoice voided? Its number stays in the history. (3 characters at least)",
     "voidBlocked": "An invoice with payments cannot be voided: void the payments first.",
-    "voidHint": "A voided invoice keeps its number; its replacement gets a new one."
+    "voidHint": "A voided invoice keeps its number; its replacement gets a new one.",
+    "paper": {
+      "title": "Invoice",
+      "voidTitle": "Void invoice",
+      "billTo": "Bill to",
+      "period": "Period",
+      "issuedOn": "Issue date",
+      "totalDue": "Amount due",
+      "feeNote": "Advertising campaign management fees. The ad spend is paid to the platforms directly; it is only the basis of the percentage.",
+      "paymentOn": "Payment {{date}} ({{method}})",
+      "voidNotice": "This invoice is void and is not to be paid.",
+      "thanks": "Thank you for your trust.",
+      "print": "Print or save as PDF",
+      "printLink": "Print / PDF"
+    }
+  },
+  "clientInvoices": {
+    "title": "Your invoices",
+    "empty": "No invoices yet."
   }
 }

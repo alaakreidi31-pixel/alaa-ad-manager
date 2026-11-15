@@ -125,6 +125,20 @@ function toPaymentView(payment: Payment, currency: string): PaymentView {
   };
 }
 
+// What a CLIENT sees of an invoice: issued ones only, no void reason.
+export type ClientInvoice = Omit<InvoiceView, 'voidReason' | 'clientId'>;
+
+export interface ClientInvoiceDetail extends ClientInvoice {
+  payments: { amount: string; paidOn: string; method: PaymentMethod }[];
+}
+
+function toClientView(row: InvoiceRow): ClientInvoice {
+  const view: Partial<InvoiceView> = toView(row);
+  delete view.voidReason;
+  delete view.clientId;
+  return view as ClientInvoice;
+}
+
 // The text of a database error, whatever layer wrapped it.
 function databaseMessage(error: unknown): string {
   if (!(error instanceof Error)) return String(error);
@@ -436,6 +450,40 @@ export class InvoicesService {
       throw translate(error);
     }
     return this.get(invoiceId);
+  }
+
+  // ---- Client portal (step 6.3): the client id ALWAYS comes from the
+  // session. Drafts are never shown; voided payments and every void reason
+  // stay inside the agency.
+
+  async listForClient(clientId: string): Promise<ClientInvoice[]> {
+    const rows = await this.prisma.invoice.findMany({
+      where: { clientId, number: { not: null } },
+      include: WITH_DETAILS,
+      orderBy: [{ periodMonth: 'desc' }, { issuedAt: 'desc' }],
+    });
+    return rows.map((row) => toClientView(row));
+  }
+
+  async getForClient(clientId: string, id: string): Promise<ClientInvoiceDetail> {
+    if (!IdSchema.safeParse(id).success) throw new InvoiceNotFoundError();
+    // BOTH ids, and issued (numbered) only: anything else is "not found".
+    const row = await this.prisma.invoice.findFirst({
+      where: { id, clientId, number: { not: null } },
+      include: WITH_DETAILS,
+    });
+    if (!row) throw new InvoiceNotFoundError();
+    return {
+      ...toClientView(row),
+      payments: row.payments
+        .filter((payment) => payment.voidedAt === null)
+        .sort((a, b) => a.paidOn.getTime() - b.paidOn.getTime())
+        .map((payment) => ({
+          amount: fromMinor(payment.amountMinor, row.currency),
+          paidOn: day(payment.paidOn),
+          method: payment.method,
+        })),
+    };
   }
 
   private async find(db: Pick<PrismaService, 'invoice'>, id: string): Promise<InvoiceRow> {

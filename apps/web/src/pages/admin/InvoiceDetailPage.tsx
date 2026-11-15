@@ -117,6 +117,11 @@ export function InvoiceDetailPage() {
             {invoice.number ?? t('invoices.draftNumber')}
           </h1>
           <InvoiceBadge label={invoiceLabel(invoice)} />
+          {invoice.status !== 'DRAFT' && (
+            <Link to={`/admin/invoices/${invoice.id}/print`} className={`${ui.secondary} ms-auto`}>
+              {t('invoices.paper.printLink')}
+            </Link>
+          )}
         </div>
         <p className="mt-1 text-sm text-ink-400">
           <Link to={`/admin/clients/${invoice.clientId}`} className="text-sky-300 hover:underline">

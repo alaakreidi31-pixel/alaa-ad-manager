@@ -32,7 +32,7 @@ const CLIENT_NAV: NavItem[] = [
   { key: 'overview', icon: 'home', to: '/', end: true },
   { key: 'campaigns', icon: 'campaigns', to: '/campaigns' },
   { key: 'reports', icon: 'reports' },
-  { key: 'invoices', icon: 'invoices' },
+  { key: 'invoices', icon: 'invoices', to: '/invoices' },
 ];
 
 function SignOutButton({ compact = false }: { compact?: boolean }) {

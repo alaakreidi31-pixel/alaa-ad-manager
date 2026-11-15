@@ -79,3 +79,23 @@ body {
 html[lang='ar'] body {
   font-family: 'IBM Plex Sans Arabic', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Printing an invoice (step 6.3): only the paper is printed, in black on
+   white, whatever the theme. The layout (menus, header, footer) is hidden. */
+@media print {
+  aside,
+  header,
+  footer,
+  [data-print-hide] {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  @page {
+    margin: 14mm;
+  }
+}

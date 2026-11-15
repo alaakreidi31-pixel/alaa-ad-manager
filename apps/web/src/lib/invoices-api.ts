@@ -105,3 +105,15 @@ export const voidPayment = (api: Api, paymentId: string, reason: string) =>
     method: 'POST',
     body: { reason },
   });
+
+// Client portal (step 6.3): issued invoices only, without void reasons.
+export type ClientInvoice = Omit<Invoice, 'voidReason' | 'clientId'>;
+
+export interface ClientInvoiceDetail extends ClientInvoice {
+  payments: { amount: string; paidOn: string; method: PaymentMethod }[];
+}
+
+export const listMyInvoices = (api: Api) => api<ClientInvoice[]>('/client/invoices');
+
+export const getMyInvoice = (api: Api, id: string) =>
+  api<ClientInvoiceDetail>(`/client/invoices/${encodeURIComponent(id)}`);

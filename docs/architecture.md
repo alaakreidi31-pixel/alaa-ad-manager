@@ -47,6 +47,7 @@
 | `/admin/campaigns`                                         | كل الحملات: بحث باسم الحملة أو العميل، وفلتر المنصة والحالة                                                                                                   | `apps/web/src/pages/admin/CampaignsListPage.tsx`                              |
 | `/admin/clients/:id/campaigns/new` و`.../:campaignId/edit` | إضافة حملة لعميل وتعديلها                                                                                                                                     | `apps/web/src/pages/admin/CampaignFormPage.tsx`                               |
 | `/admin/invoices` و`/admin/invoices/:id`                   | الفواتير: تجهيز المسودات تلقائياً، والمراجعة والإصدار، والدفعات، والإلغاء مع السبب                                                                             | `apps/web/src/pages/admin/InvoicesListPage.tsx` و`InvoiceDetailPage.tsx`      |
+| `/admin/invoices/:id/print` و`/invoices` و`/invoices/:id`  | الفاتورة كورقة للطباعة أو الحفظ PDF، وفواتير العميل في بوابته                                                                                                 | `apps/web/src/components/InvoicePaper.tsx`                                    |
 | `/admin/clients/:id/campaigns/import`                      | استيراد CSV: اختيار المنصة والملف، ثم المعاينة، ثم التأكيد                                                                                                    | `apps/web/src/pages/admin/CampaignImportPage.tsx`                             |
 | `/admin/clients/:id/campaigns/:campaignId`                 | الحملة وحالتها، والأرقام اليومية مع المجاميع، وإدخال يوم أو تصحيحه                                                                                            | `apps/web/src/pages/admin/CampaignDetailPage.tsx`                             |
 
@@ -96,12 +97,13 @@
 
 لحسابات `CLIENT_USER` فقط (`AccessTokenGuard` ثم `ClientUserGuard`). **لا يقبل أي مسار رقم عميل من الطلب**: العميل يُؤخذ من الجلسة دائماً.
 
-| النقطة                                          | الوظيفة                                                          |
-| ----------------------------------------------- | ---------------------------------------------------------------- |
-| `GET /api/client/campaigns`                     | حملات العميل (بلا المؤرشفة وبلا رقم المنصة)                      |
-| `GET /api/client/campaign-summary`              | مجاميع فترة (افتراضياً آخر 30 يوماً) لكل عملة، وعدد الحملات النشطة |
-| `GET /api/client/campaigns/:campaignId/metrics` | الأرقام اليومية لحملة من حملاته فقط (غير ذلك 404)                |
-| `GET /api/client/profile`                       | بيانات شركة العميل، بدون الملاحظات الداخلية                      |
+| النقطة                                                     | الوظيفة                                                          |
+| ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| `GET /api/client/campaigns`                                | حملات العميل (بلا المؤرشفة وبلا رقم المنصة)                      |
+| `GET /api/client/campaign-summary`                         | مجاميع فترة (افتراضياً آخر 30 يوماً) لكل عملة، وعدد الحملات النشطة |
+| `GET /api/client/campaigns/:campaignId/metrics`            | الأرقام اليومية لحملة من حملاته فقط (غير ذلك 404)                |
+| `GET /api/client/invoices` و`GET /api/client/invoices/:id` | فواتير العميل المُصدرة فقط، ودفعاتها الفعّالة، بلا أسباب الإلغاء   |
+| `GET /api/client/profile`                                  | بيانات شركة العميل، بدون الملاحظات الداخلية                      |
 
 ## قاعدة البيانات
 
@@ -229,7 +231,7 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (351 اختباراً)
+## الاختبارات الموجودة (355 اختباراً)
 
 | الملف                                                     | العدد       | ماذا يحمي                                                                                                               |
 | --------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -281,6 +283,7 @@ alaa-ad-manager/
 | `apps/api/src/invoices/invoices.service.db-spec.ts`       | 7           | المسودات، والإصدار، والترقيم، والدفعات الجزئية، والإلغاء، والفاتورة البديلة                                             |
 | `apps/api/src/invoices/invoices.http.db-spec.ts`          | 2           | عبر HTTP: 401 و403 على كل مسار، ورموز الأخطاء، ولا مسار للتعديل أو الحذف                                                |
 | `apps/web/src/lib/invoices-api.test.ts`                   | 1           | حالة الفاتورة المعروضة: مسودة، أو غير مدفوعة، أو جزئية، أو متأخرة، أو مدفوعة، أو ملغاة                                  |
+| `apps/api/src/invoices/client-invoices.http.db-spec.ts`   | 4           | بوابة العميل: فواتيره المُصدرة فقط، بلا مسودات ولا أسباب إلغاء، وIDOR، و401/403                                          |
 | `apps/web/src/i18n/locales.test.ts`                       | 3           | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                                               |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.
