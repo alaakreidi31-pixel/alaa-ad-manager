@@ -22,7 +22,7 @@ const ADMIN_NAV: NavItem[] = [
   { key: 'campaigns', icon: 'campaigns', to: '/admin/campaigns' },
   { key: 'invoices', icon: 'invoices', to: '/admin/invoices' },
   { key: 'payments', icon: 'payments' },
-  { key: 'reports', icon: 'reports' },
+  { key: 'reports', icon: 'reports', to: '/admin/reports' },
   { key: 'tasks', icon: 'tasks' },
   { key: 'settings', icon: 'settings' },
 ];
@@ -31,7 +31,7 @@ const ADMIN_NAV: NavItem[] = [
 const CLIENT_NAV: NavItem[] = [
   { key: 'overview', icon: 'home', to: '/', end: true },
   { key: 'campaigns', icon: 'campaigns', to: '/campaigns' },
-  { key: 'reports', icon: 'reports' },
+  { key: 'reports', icon: 'reports', to: '/reports' },
   { key: 'invoices', icon: 'invoices', to: '/invoices' },
 ];
 

@@ -47,6 +47,9 @@ body,
  */
 :root[data-theme='light'] {
   color-scheme: light;
+  --chart-1: #0284c7;
+  --chart-2: #a8842f;
+  --chart-3: #6d5bd0;
   --color-ink-950: #f4f7fc;
   --color-ink-900: #ffffff;
   --color-ink-800: #eaf0f8;
@@ -64,8 +67,16 @@ body,
   --color-danger: #b91c1c;
 }
 
+/*
+ * Report chart series (phase 7, ADR 0021): blue, gold, violet, in this
+ * order, never cycled. Each theme has its own values, validated against its
+ * card surface (contrast and color-blind separation).
+ */
 :root {
   color-scheme: dark;
+  --chart-1: #2b9fdb;
+  --chart-2: #b08a35;
+  --chart-3: #8b7ae6;
 }
 
 body {

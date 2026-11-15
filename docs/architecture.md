@@ -48,6 +48,7 @@
 | `/admin/clients/:id/campaigns/new` و`.../:campaignId/edit` | إضافة حملة لعميل وتعديلها                                                                                                                                     | `apps/web/src/pages/admin/CampaignFormPage.tsx`                               |
 | `/admin/invoices` و`/admin/invoices/:id`                   | الفواتير: تجهيز المسودات تلقائياً، والمراجعة والإصدار، والدفعات، والإلغاء مع السبب                                                                             | `apps/web/src/pages/admin/InvoicesListPage.tsx` و`InvoiceDetailPage.tsx`      |
 | `/admin/invoices/:id/print` و`/invoices` و`/invoices/:id`  | الفاتورة كورقة للطباعة أو الحفظ PDF، وفواتير العميل في بوابته                                                                                                 | `apps/web/src/components/InvoicePaper.tsx`                                    |
+| `/admin/reports` و`/reports`                               | التقارير: الأداء عبر الزمن، ومقارنة الحملات، ومالية الوكالة (للإدارة)، وتصدير CSV (ADR 0021)                                                                  | `apps/web/src/components/PerformanceReport.tsx` و`FinanceReport.tsx`          |
 | `/admin/clients/:id/campaigns/import`                      | استيراد CSV: اختيار المنصة والملف، ثم المعاينة، ثم التأكيد                                                                                                    | `apps/web/src/pages/admin/CampaignImportPage.tsx`                             |
 | `/admin/clients/:id/campaigns/:campaignId`                 | الحملة وحالتها، والأرقام اليومية مع المجاميع، وإدخال يوم أو تصحيحه                                                                                            | `apps/web/src/pages/admin/CampaignDetailPage.tsx`                             |
 
@@ -87,6 +88,7 @@
 | `POST /api/admin/invoices/:id/void`                                                        | إلغاء مع `reason` (مسودة، أو مُصدرة بلا دفعات فعّالة)                                                                                  |
 | `POST /api/admin/invoices/:id/payments`                                                    | تسجيل دفعة: `amount` و`paidOn` و`method` و`reference`                                                                                |
 | `POST /api/admin/payments/:paymentId/void`                                                 | إلغاء دفعة مع `reason`                                                                                                               |
+| `GET /api/admin/reports/performance` و`/campaigns` و`/finance`                             | التقارير (ADR 0021): الأداء لكل فترة، ومقارنة الحملات، والمفوتر والمحصّل والمستحق لكل عملة                                            |
 | `GET /api/admin/clients/:id/users`                                                         | حسابات دخول العميل                                                                                                                   |
 | `POST /api/admin/clients/:id/users`                                                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة                                                                                   |
 | `POST /api/admin/clients/:id/users/:userId/reset-password`                                 | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب                                                                                         |
@@ -103,6 +105,7 @@
 | `GET /api/client/campaign-summary`                         | مجاميع فترة (افتراضياً آخر 30 يوماً) لكل عملة، وعدد الحملات النشطة |
 | `GET /api/client/campaigns/:campaignId/metrics`            | الأرقام اليومية لحملة من حملاته فقط (غير ذلك 404)                |
 | `GET /api/client/invoices` و`GET /api/client/invoices/:id` | فواتير العميل المُصدرة فقط، ودفعاتها الفعّالة، بلا أسباب الإلغاء   |
+| `GET /api/client/reports/performance` و`/campaigns`        | تقارير حملات العميل فقط (أي `clientId` في الطلب يُتجاهل)          |
 | `GET /api/client/profile`                                  | بيانات شركة العميل، بدون الملاحظات الداخلية                      |
 
 ## قاعدة البيانات

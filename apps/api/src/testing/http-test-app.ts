@@ -37,6 +37,8 @@ import { InvoicesController } from '../invoices/invoices.controller';
 import { InvoicesService } from '../invoices/invoices.service';
 import type { PrismaClient } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminReportsController, ClientReportsController } from '../reports/reports.controller';
+import { ReportsService } from '../reports/reports.service';
 
 export interface HttpTestApp {
   app: INestApplication;
@@ -72,6 +74,8 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       FeePlansController,
       InvoicesController,
       ClientInvoicesController,
+      AdminReportsController,
+      ClientReportsController,
     ],
     providers: [
       { provide: PrismaService, useValue: db },
@@ -90,6 +94,7 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       { provide: DashboardService, useValue: new DashboardService(db) },
       { provide: FeePlansService, useValue: new FeePlansService(db) },
       { provide: InvoicesService, useValue: new InvoicesService(db) },
+      { provide: ReportsService, useValue: new ReportsService(db) },
       AccessTokenGuard,
       SuperAdminGuard,
       ClientUserGuard,

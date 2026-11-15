@@ -34,6 +34,7 @@ import {
   PaymentExceedsTotalError,
   PaymentNotFoundError,
 } from '../invoices/invoices.errors';
+import { ReportValidationError } from '../reports/reports.service';
 import type { Actor } from './clients.service';
 
 const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] = [
@@ -67,7 +68,8 @@ export function toHttpError(error: unknown): Error {
     error instanceof ClientValidationError ||
     error instanceof CampaignValidationError ||
     error instanceof FeePlanValidationError ||
-    error instanceof InvoiceValidationError
+    error instanceof InvoiceValidationError ||
+    error instanceof ReportValidationError
   ) {
     return new HttpException(
       { statusCode: 400, message: error.message, code: 'invalid_input', fields: error.fields },
