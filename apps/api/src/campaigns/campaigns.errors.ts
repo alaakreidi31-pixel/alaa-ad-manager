@@ -41,3 +41,17 @@ export class ExternalIdTakenError extends Error {
     super('This client already has a campaign with this platform id');
   }
 }
+
+// The daily numbers are in the campaign currency: it cannot change any more.
+export class CurrencyLockedError extends Error {
+  constructor() {
+    super('The currency cannot change once daily numbers exist');
+  }
+}
+
+// Daily numbers are refused for future days.
+export class FutureDayError extends Error {
+  constructor() {
+    super('Numbers cannot be entered for a future day');
+  }
+}

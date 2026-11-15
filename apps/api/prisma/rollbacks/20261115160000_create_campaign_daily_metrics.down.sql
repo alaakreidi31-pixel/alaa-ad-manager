@@ -1,0 +1,12 @@
+-- ROLLBACK for migration 20261115160000_create_campaign_daily_metrics
+--
+-- DELETES EVERY DAILY NUMBER OF EVERY CAMPAIGN.
+-- Never run automatically on a real database (development or production).
+-- It runs automatically ONLY in the rollback test, on alaa_ad_manager_test.
+-- Manual use on any other database requires the project owner's approval.
+
+DROP TABLE "campaign_daily_metrics";
+DROP TYPE "metric_source";
+
+-- Forget that the migration was applied, so "prisma migrate deploy" can apply it again.
+DELETE FROM "_prisma_migrations" WHERE "migration_name" = '20261115160000_create_campaign_daily_metrics';

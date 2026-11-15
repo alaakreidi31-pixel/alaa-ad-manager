@@ -95,6 +95,7 @@ describe('rollback of every migration (test database only)', () => {
       expect(await app.auditLog.count()).toBeTypeOf('number');
       expect(await app.client.count()).toBeTypeOf('number');
       expect(await app.campaign.count()).toBeTypeOf('number');
+      expect(await app.campaignDailyMetric.count()).toBeTypeOf('number');
     } finally {
       await app.$disconnect();
     }

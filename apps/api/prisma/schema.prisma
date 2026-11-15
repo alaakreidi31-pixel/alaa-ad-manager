@@ -204,7 +204,39 @@ model Campaign {
   endDate     DateTime?        @map("end_date") @db.Date
   createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  // One row per day (step 4.2)
+  metrics     CampaignDailyMetric[]
 
   @@index([clientId, status])
   @@map("campaigns")
+}
+
+// Where a daily number came from (ADR 0018).
+enum MetricSource {
+  MANUAL
+  CSV
+
+  @@map("metric_source")
+}
+
+// The numbers of ONE campaign for ONE day (ADR 0018). Saving the same day
+// again corrects the row: an imported file can never count a day twice.
+// Never deleted: a wrong day is corrected (with zeros if needed).
+model CampaignDailyMetric {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId  String       @map("campaign_id") @db.Uuid
+  campaign    Campaign     @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  date        DateTime     @db.Date
+  // Minor units of the CAMPAIGN currency (ADR 0008)
+  spendMinor  BigInt       @default(0) @map("spend_minor")
+  impressions BigInt       @default(0)
+  clicks      BigInt       @default(0)
+  // Not money: may be fractional (Google attribution, e.g. 2.5)
+  conversions Decimal      @default(0) @db.Decimal(14, 2)
+  source      MetricSource
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([campaignId, date])
+  @@map("campaign_daily_metrics")
 }

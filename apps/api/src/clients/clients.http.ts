@@ -4,7 +4,9 @@ import {
   CampaignArchivedError,
   CampaignNotFoundError,
   CampaignValidationError,
+  CurrencyLockedError,
   ExternalIdTakenError,
+  FutureDayError,
   InvalidCampaignStatusChangeError,
 } from '../campaigns/campaigns.errors';
 import {
@@ -29,6 +31,8 @@ const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] 
   [CampaignArchivedError, HttpStatus.CONFLICT, 'campaign_archived'],
   [InvalidCampaignStatusChangeError, HttpStatus.CONFLICT, 'invalid_status_change'],
   [ExternalIdTakenError, HttpStatus.CONFLICT, 'external_id_taken'],
+  [CurrencyLockedError, HttpStatus.CONFLICT, 'currency_locked'],
+  [FutureDayError, HttpStatus.BAD_REQUEST, 'future_day'],
 ];
 
 // Turns expected failures into HTTP answers with a stable "code" for the web app.

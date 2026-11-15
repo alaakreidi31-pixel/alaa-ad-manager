@@ -15,7 +15,7 @@ const optionalText = (max: number) =>
     .optional();
 
 // A calendar day "YYYY-MM-DD" that really exists (no 2026-02-30).
-const day = z
+export const day = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'must be a date like 2026-11-15' })
   .refine((value) => new Date(`${value}T00:00:00Z`).toISOString().startsWith(value), {
@@ -95,3 +95,50 @@ export const ListCampaignsQuerySchema = z.object({
 });
 
 export const CampaignIdSchema = z.uuid();
+
+// The numbers of one day (step 4.2). Counts are whole numbers; conversions
+// may have 2 decimals (Google); spend is money TEXT like "150.50" (ADR 0008).
+const count = z
+  .union([z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), z.string().trim()])
+  .transform((value) => String(value))
+  .pipe(z.string().regex(/^\d{1,15}$/, { message: 'must be a whole number, 0 or more' }))
+  .transform((value) => BigInt(value));
+
+export const SaveDayMetricsSchema = z
+  .object({
+    spend: z
+      .union([z.string().trim(), z.number().nonnegative().finite()])
+      .transform((value) => String(value))
+      .pipe(
+        z.string().regex(/^\d{1,15}(\.\d{1,3})?$/, {
+          message: 'must be an amount like 150 or 150.50',
+        }),
+      ),
+    impressions: count.default(0n),
+    clicks: count.default(0n),
+    conversions: z
+      .union([z.string().trim(), z.number().nonnegative().finite()])
+      .transform((value) => String(value))
+      .pipe(
+        z.string().regex(/^\d{1,12}(\.\d{1,2})?$/, {
+          message: 'must be a number like 3 or 2.5',
+        }),
+      )
+      .default('0'),
+  })
+  .strict();
+
+// At most one year per request.
+export const MetricsRangeSchema = z
+  .object({ from: day.optional(), to: day.optional() })
+  .transform(({ from, to }, ctx) => {
+    const end = to ?? new Date().toISOString().slice(0, 10);
+    const endTime = Date.parse(`${end}T00:00:00Z`);
+    const start = from ?? new Date(endTime - 29 * 86_400_000).toISOString().slice(0, 10);
+    const days = (endTime - Date.parse(`${start}T00:00:00Z`)) / 86_400_000;
+    if (days < 0 || days > 365) {
+      ctx.addIssue({ code: 'custom', path: ['from'], message: 'the range must be 1 to 366 days' });
+      return z.NEVER;
+    }
+    return { from: start, to: end };
+  });

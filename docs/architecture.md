@@ -108,6 +108,11 @@
 
 **التحقق بخطوتين ([ADR 0013](decisions/0013-two-factor-authentication.md)):** إذا كان الحساب يستخدم 2FA، يعيد `login` تذكرة مؤقتة (5 دقائق) بدل الجلسة، وتُفتح الجلسة بعد `2fa/verify`. حساب `SUPER_ADMIN` دون 2FA يُرفض (403). خوارزمية TOTP في `apps/api/src/auth/totp.ts`، والتشفير AES-256-GCM في `secret-box.ts`، والتفعيل بالأمر `pnpm admin:setup-2fa`.
 
+### جدول `campaign_daily_metrics` (migration `20261115160000_create_campaign_daily_metrics`)
+
+- صف واحد لكل حملة في كل يوم (فهرس فريد): حفظ اليوم مرة ثانية يصحّحه ولا يكرره.
+- الإنفاق `spend_minor` بأصغر وحدة لعملة الحملة، والتحويلات عدد عشري (ليست مالاً). لا حذف، وقاعدة البيانات ترفض الأرقام السالبة.
+
 ### جدول `campaigns` (migration `20261115140000_create_campaigns`)
 
 - حملات Meta وGoogle لكل عميل. لا حذف: الحملة تُؤرشف، و`alaa_app` لا يملك `DELETE`. انظر [ADR 0018](decisions/0018-campaigns.md).
@@ -193,44 +198,46 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (292 اختباراً)
+## الاختبارات الموجودة (305 اختبارات)
 
-| الملف                                                   | العدد | ماذا يحمي                                                                                   |
-| ------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
-| `apps/api/src/config/env.schema.spec.ts`                | 10    | حارس الإعدادات يقبل الصحيح ويرفض الناقص أو الخاطئ                                           |
-| `apps/api/src/health/health.controller.spec.ts`         | 2     | `/api/health` يعيد `up`، أو `down` مع 503                                                   |
-| `apps/api/src/users/email.spec.ts`                      | 4     | توحيد البريد                                                                                |
-| `apps/api/src/testing/test-database.spec.ts`            | 5     | حارس قاعدة الاختبار، ولا يُظهر كلمة المرور                                                   |
-| `apps/api/src/users/users.db-spec.ts`                   | 12    | جدول المستخدمين على PostgreSQL الحقيقي، وأن `alaa_app` لا يغيّر البنية                       |
-| `apps/api/src/auth/password.spec.ts`                    | 9     | تشفير argon2id، والتحقق، وسياسة كلمة المرور                                                 |
-| `apps/api/src/users/create-super-admin.db-spec.ts`      | 9     | إنشاء SUPER_ADMIN: واحد فقط، وتشفير كلمة المرور، ورفض المدخلات الخاطئة                      |
-| `apps/api/src/audit/audit.db-spec.ts`                   | 5     | سجل التدقيق: `alaa_app` يضيف ويقرأ فقط، ولا يعدّل ولا يحذف                                   |
-| `apps/api/src/auth/tokens.spec.ts`                      | 9     | توليد الرموز وبصمتها، وقراءة الـ cookie والـ Bearer                                         |
-| `apps/api/src/auth/auth.service.db-spec.ts`             | 48    | الدخول، والتجديد، واكتشاف الرمز المسروق، والخروج، والإيقاف، وقفل الحساب، و2FA، وسجل التدقيق |
-| `apps/api/src/auth/auth.http-errors.spec.ts`            | 12    | كل خطأ دخول يصل إلى الواجهة برمز HTTP ورمز `code` ثابت                                      |
-| `apps/api/src/auth/totp.spec.ts`                        | 15    | خوارزمية TOTP على متجهات RFC 6238 الرسمية، وBase32، ورابط QR                                |
-| `apps/api/src/auth/secret-box.spec.ts`                  | 6     | تشفير AES-256-GCM: رفض القيمة المعدّلة والمفتاح الخاطئ                                       |
-| `apps/api/src/auth/recovery-codes.spec.ts`              | 4     | الرموز الاحتياطية: الصيغة، والتخزين كـ hash فقط                                             |
-| `apps/api/src/auth/rate-limiter.spec.ts`                | 5     | حد الطلبات لكل IP                                                                           |
-| `apps/api/src/migrations/create-users.rollback-spec.ts` | 2     | لكل migration ملف تراجع، والتراجع عن الكل ثم إعادة التطبيق                                  |
-| `apps/web/src/lib/health.test.ts`                       | 6     | الواجهة تتعامل مع كل حالات رد الخادم                                                        |
-| `apps/web/src/lib/auth-api.test.ts`                     | 10    | الدخول، والخطوة الثانية، وترجمة رموز الأخطاء، وطلب تجديد واحد فقط في كل لحظة                |
-| `apps/web/src/lib/api-client.test.ts`                   | 5     | الطلبات المحمية: الـ token، والتجديد مرة واحدة عند 401، ورموز الأخطاء                       |
-| `apps/web/src/lib/reference-data.test.ts`               | 3     | قوائم الدول والعملات والمناطق الزمنية في نموذج العميل                                       |
-| `apps/api/src/auth/super-admin.guard.spec.ts`           | 3     | مسارات الإدارة لـ `SUPER_ADMIN` فقط                                                         |
-| `apps/api/src/clients/clients.schemas.spec.ts`          | 14    | التحقق من بيانات العميل وتوحيدها                                                            |
-| `apps/api/src/clients/clients.service.db-spec.ts`       | 16    | إدارة العملاء، والأرشفة، وسجل التدقيق، ومنع الحذف من قاعدة البيانات                         |
-| `apps/api/src/clients/clients.http.db-spec.ts`          | 7     | عبر HTTP حقيقي: 401 بلا token، و403 لحساب العميل على كل مسار إداري، و404 للمعرّفات الخاطئة   |
-| `apps/api/src/auth/temporary-password.spec.ts`          | 3     | كلمات المرور المؤقتة: الصيغة والقوة والعشوائية                                              |
-| `apps/api/src/auth/client-user.guard.spec.ts`           | 3     | بوابة العميل لحسابات `CLIENT_USER` فقط                                                      |
-| `apps/api/src/clients/client-accounts.db-spec.ts`       | 17    | حسابات العملاء: كلمة المرور المؤقتة، والتغيير الإجباري، وإيقاف العميل وأرشفته، وIDOR        |
-| `apps/api/src/clients/client-portal.http.db-spec.ts`    | 7     | عبر HTTP: كل عميل يرى بياناته فقط، بلا ملاحظات داخلية، وIDOR بين عميلين                     |
-| `apps/api/src/dashboard/dashboard.http.db-spec.ts`      | 4     | لوحة الإدارة: 401 و403، وأعداد حقيقية من القاعدة، وبلا ملاحظات داخلية                       |
-| `apps/api/src/money/money.spec.ts`                      | 9     | المبالغ بأصغر وحدة للعملة (سنت، ين، فلس) بلا أي float                                       |
-| `apps/api/src/campaigns/campaigns.schemas.spec.ts`      | 11    | التحقق من بيانات الحملة: المنصة، والمبلغ، والتواريخ، ورفض الحقول غير المسموحة               |
-| `apps/api/src/campaigns/campaigns.service.db-spec.ts`   | 10    | الحملات: العملة، ورقم المنصة الفريد، والحالات، وIDOR، وسجل التدقيق، ومنع الحذف              |
-| `apps/api/src/campaigns/campaigns.http.db-spec.ts`      | 4     | عبر HTTP: 401 و403 على كل مسار، ورموز الأخطاء، وIDOR بين عميلين                             |
-| `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                   |
+| الملف                                                     | العدد | ماذا يحمي                                                                                   |
+| --------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
+| `apps/api/src/config/env.schema.spec.ts`                  | 10    | حارس الإعدادات يقبل الصحيح ويرفض الناقص أو الخاطئ                                           |
+| `apps/api/src/health/health.controller.spec.ts`           | 2     | `/api/health` يعيد `up`، أو `down` مع 503                                                   |
+| `apps/api/src/users/email.spec.ts`                        | 4     | توحيد البريد                                                                                |
+| `apps/api/src/testing/test-database.spec.ts`              | 5     | حارس قاعدة الاختبار، ولا يُظهر كلمة المرور                                                   |
+| `apps/api/src/users/users.db-spec.ts`                     | 12    | جدول المستخدمين على PostgreSQL الحقيقي، وأن `alaa_app` لا يغيّر البنية                       |
+| `apps/api/src/auth/password.spec.ts`                      | 9     | تشفير argon2id، والتحقق، وسياسة كلمة المرور                                                 |
+| `apps/api/src/users/create-super-admin.db-spec.ts`        | 9     | إنشاء SUPER_ADMIN: واحد فقط، وتشفير كلمة المرور، ورفض المدخلات الخاطئة                      |
+| `apps/api/src/audit/audit.db-spec.ts`                     | 5     | سجل التدقيق: `alaa_app` يضيف ويقرأ فقط، ولا يعدّل ولا يحذف                                   |
+| `apps/api/src/auth/tokens.spec.ts`                        | 9     | توليد الرموز وبصمتها، وقراءة الـ cookie والـ Bearer                                         |
+| `apps/api/src/auth/auth.service.db-spec.ts`               | 48    | الدخول، والتجديد، واكتشاف الرمز المسروق، والخروج، والإيقاف، وقفل الحساب، و2FA، وسجل التدقيق |
+| `apps/api/src/auth/auth.http-errors.spec.ts`              | 12    | كل خطأ دخول يصل إلى الواجهة برمز HTTP ورمز `code` ثابت                                      |
+| `apps/api/src/auth/totp.spec.ts`                          | 15    | خوارزمية TOTP على متجهات RFC 6238 الرسمية، وBase32، ورابط QR                                |
+| `apps/api/src/auth/secret-box.spec.ts`                    | 6     | تشفير AES-256-GCM: رفض القيمة المعدّلة والمفتاح الخاطئ                                       |
+| `apps/api/src/auth/recovery-codes.spec.ts`                | 4     | الرموز الاحتياطية: الصيغة، والتخزين كـ hash فقط                                             |
+| `apps/api/src/auth/rate-limiter.spec.ts`                  | 5     | حد الطلبات لكل IP                                                                           |
+| `apps/api/src/migrations/create-users.rollback-spec.ts`   | 2     | لكل migration ملف تراجع، والتراجع عن الكل ثم إعادة التطبيق                                  |
+| `apps/web/src/lib/health.test.ts`                         | 6     | الواجهة تتعامل مع كل حالات رد الخادم                                                        |
+| `apps/web/src/lib/auth-api.test.ts`                       | 10    | الدخول، والخطوة الثانية، وترجمة رموز الأخطاء، وطلب تجديد واحد فقط في كل لحظة                |
+| `apps/web/src/lib/api-client.test.ts`                     | 5     | الطلبات المحمية: الـ token، والتجديد مرة واحدة عند 401، ورموز الأخطاء                       |
+| `apps/web/src/lib/reference-data.test.ts`                 | 3     | قوائم الدول والعملات والمناطق الزمنية في نموذج العميل                                       |
+| `apps/api/src/auth/super-admin.guard.spec.ts`             | 3     | مسارات الإدارة لـ `SUPER_ADMIN` فقط                                                         |
+| `apps/api/src/clients/clients.schemas.spec.ts`            | 14    | التحقق من بيانات العميل وتوحيدها                                                            |
+| `apps/api/src/clients/clients.service.db-spec.ts`         | 16    | إدارة العملاء، والأرشفة، وسجل التدقيق، ومنع الحذف من قاعدة البيانات                         |
+| `apps/api/src/clients/clients.http.db-spec.ts`            | 7     | عبر HTTP حقيقي: 401 بلا token، و403 لحساب العميل على كل مسار إداري، و404 للمعرّفات الخاطئة   |
+| `apps/api/src/auth/temporary-password.spec.ts`            | 3     | كلمات المرور المؤقتة: الصيغة والقوة والعشوائية                                              |
+| `apps/api/src/auth/client-user.guard.spec.ts`             | 3     | بوابة العميل لحسابات `CLIENT_USER` فقط                                                      |
+| `apps/api/src/clients/client-accounts.db-spec.ts`         | 17    | حسابات العملاء: كلمة المرور المؤقتة، والتغيير الإجباري، وإيقاف العميل وأرشفته، وIDOR        |
+| `apps/api/src/clients/client-portal.http.db-spec.ts`      | 7     | عبر HTTP: كل عميل يرى بياناته فقط، بلا ملاحظات داخلية، وIDOR بين عميلين                     |
+| `apps/api/src/dashboard/dashboard.http.db-spec.ts`        | 4     | لوحة الإدارة: 401 و403، وأعداد حقيقية من القاعدة، وبلا ملاحظات داخلية                       |
+| `apps/api/src/money/money.spec.ts`                        | 9     | المبالغ بأصغر وحدة للعملة (سنت، ين، فلس) بلا أي float                                       |
+| `apps/api/src/campaigns/campaigns.schemas.spec.ts`        | 11    | التحقق من بيانات الحملة: المنصة، والمبلغ، والتواريخ، ورفض الحقول غير المسموحة               |
+| `apps/api/src/campaigns/campaigns.service.db-spec.ts`     | 10    | الحملات: العملة، ورقم المنصة الفريد، والحالات، وIDOR، وسجل التدقيق، ومنع الحذف              |
+| `apps/api/src/campaigns/campaigns.http.db-spec.ts`        | 4     | عبر HTTP: 401 و403 على كل مسار، ورموز الأخطاء، وIDOR بين عميلين                             |
+| `apps/api/src/campaigns/campaign-metrics.db-spec.ts`      | 9     | الأرقام اليومية: يوم واحد لكل حملة (التصحيح لا يكرر)، والمجاميع الدقيقة، وقفل العملة، وIDOR |
+| `apps/api/src/campaigns/campaign-metrics.http.db-spec.ts` | 4     | عبر HTTP: 401 و403، والحفظ بـ PUT، ورموز الأخطاء، وIDOR                                     |
+| `apps/web/src/i18n/locales.test.ts`                       | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                   |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.
 

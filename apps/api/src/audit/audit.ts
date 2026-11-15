@@ -35,6 +35,8 @@ export type AuditAction =
   | 'admin.campaign.created'
   | 'admin.campaign.updated'
   | 'admin.campaign.status_changed'
+  // The numbers of one day were entered or corrected (metadata.date).
+  | 'admin.campaign_metrics.saved'
   // Correct temporary password: the user must now choose a new one.
   | 'auth.login.password_change_required'
   | 'auth.password.changed';

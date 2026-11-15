@@ -15,6 +15,7 @@ import {
   CampaignArchivedError,
   CampaignNotFoundError,
   CampaignValidationError,
+  CurrencyLockedError,
   ExternalIdTakenError,
   InvalidCampaignStatusChangeError,
 } from './campaigns.errors';
@@ -208,6 +209,14 @@ export class CampaignsService {
         if (current.status === 'ARCHIVED') throw new CampaignArchivedError();
 
         const before = toAdminCampaign(current);
+        // Daily numbers are stored in the campaign currency (step 4.2).
+        if (
+          changes.currency !== undefined &&
+          changes.currency !== current.currency &&
+          (await tx.campaignDailyMetric.count({ where: { campaignId: current.id } })) > 0
+        ) {
+          throw new CurrencyLockedError();
+        }
         // The budget is compared in minor units of the NEW currency, so
         // "150" and "150.00" are the same amount; a currency change converts
         // the stored budget (and refuses it if it has too many decimals).
