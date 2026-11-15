@@ -1,5 +1,6 @@
 // Temporary text logo of ALAA MARKETING GROUP (a designed logo can replace it later).
-export function Logo() {
+// compact: without the "AD MANAGER" badge (menus).
+export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-3">
       <svg viewBox="0 0 32 32" className="h-9 w-9 shrink-0" aria-hidden="true">
@@ -16,9 +17,11 @@ export function Logo() {
         <p className="text-lg font-bold tracking-[0.25em] text-gold-400">ALAA</p>
         <p className="text-[0.65rem] font-semibold tracking-[0.3em] text-white">MARKETING GROUP</p>
       </div>
-      <span className="ms-2 hidden rounded-full border border-gold-600/60 px-3 py-1 text-xs font-semibold tracking-widest text-gold-300 sm:inline">
-        AD MANAGER
-      </span>
+      {!compact && (
+        <span className="ms-2 hidden rounded-full border border-gold-600/60 px-3 py-1 text-xs font-semibold tracking-widest text-gold-300 sm:inline">
+          AD MANAGER
+        </span>
+      )}
     </div>
   );
 }

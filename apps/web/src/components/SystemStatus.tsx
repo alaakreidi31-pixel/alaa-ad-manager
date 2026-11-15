@@ -97,7 +97,7 @@ export function SystemStatus() {
         type="button"
         onClick={() => void check()}
         disabled={loading}
-        className="mt-6 w-full rounded-xl bg-gold-400 px-4 py-3 text-sm font-bold text-ink-950 transition hover:bg-gold-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300 disabled:opacity-60"
+        className="mt-6 w-full rounded-xl bg-gold-400 px-4 py-3 text-sm font-bold text-on-gold transition hover:bg-gold-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300 disabled:opacity-60"
       >
         {loading ? t('status.checking') : t('status.checkAgain')}
       </button>

@@ -7,16 +7,26 @@
  * Contrast checked against WCAG AA on the ink background.
  */
 @theme {
-  --color-ink-950: #0a0a0b;
-  --color-ink-900: #121214;
-  --color-ink-800: #1b1b1f;
-  --color-ink-700: #2a2a30;
-  --color-ink-400: #a1a1aa;
+  /* Navy "ink" (approved design, 2026-11-15): about 35% blue in the dark tones. */
+  --color-ink-950: #070b16;
+  --color-ink-900: #0c1426;
+  --color-ink-800: #13203d;
+  --color-ink-700: #1f3357;
+  --color-ink-400: #94a8c6;
+  --color-ink-200: #dbe7f7;
 
+  --color-gold-200: #f3e6c2;
   --color-gold-300: #ecd9a4;
   --color-gold-400: #d9b766;
   --color-gold-500: #c9a24a;
   --color-gold-600: #a8842f;
+
+  /* Sky blue: the secondary accent (links, filters, secondary actions, charts). */
+  --color-sky-300: #7dd3fc;
+  --color-sky-400: #38bdf8;
+
+  /* Text on gold buttons: dark in both themes. */
+  --color-on-gold: #070b16;
 
   --color-success: #4ade80;
   --color-danger: #f87171;
@@ -30,9 +40,37 @@ body,
   min-height: 100%;
 }
 
+/*
+ * Light theme (ADR 0017): the same names get light values, so every page
+ * switches without any change in its classes. "white" is the main text
+ * color, so it becomes dark here. Dark stays the default.
+ */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-ink-950: #f4f7fc;
+  --color-ink-900: #ffffff;
+  --color-ink-800: #eaf0f8;
+  --color-ink-700: #cfdaea;
+  --color-ink-400: #52627c;
+  --color-ink-200: #1d2b45;
+  --color-white: #0b1324;
+  --color-gold-300: #7a5c14;
+  --color-gold-400: #c99a2e;
+  --color-gold-500: #a8842f;
+  --color-gold-600: #8a6a1f;
+  --color-sky-300: #0369a1;
+  --color-sky-400: #0284c7;
+  --color-success: #15803d;
+  --color-danger: #b91c1c;
+}
+
+:root {
+  color-scheme: dark;
+}
+
 body {
   background-color: var(--color-ink-950);
-  color: #ffffff;
+  color: var(--color-white);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }

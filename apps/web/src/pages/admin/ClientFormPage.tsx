@@ -224,10 +224,14 @@ export function ClientFormPage() {
             />
           </label>
 
-          <div className="sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
             <button type="submit" disabled={disabled || !values.name.trim()} className={ui.primary}>
               {busy ? t('auth.wait') : t('common.save')}
             </button>
+            {/* Says why the button is disabled (feedback from the first test). */}
+            {!archived && !values.name.trim() && (
+              <span className="text-sm text-ink-400">{t('clients.nameRequiredHint')}</span>
+            )}
           </div>
         </form>
       )}

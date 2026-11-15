@@ -81,7 +81,17 @@
   "nav": {
     "label": "Main menu",
     "home": "Home",
-    "clients": "Clients"
+    "clients": "Clients",
+    "overview": "Overview",
+    "campaigns": "Campaigns",
+    "invoices": "Invoices",
+    "payments": "Payments",
+    "reports": "Reports",
+    "tasks": "Tasks",
+    "settings": "Settings",
+    "soon": "Soon",
+    "open": "Open menu",
+    "close": "Close menu"
   },
   "clients": {
     "title": "Clients",
@@ -125,7 +135,8 @@
       "internalNotes": "Internal notes",
       "status": "Status",
       "createdAt": "Added on"
-    }
+    },
+    "nameRequiredHint": "Enter the company or brand name first to enable saving."
   },
   "clientUsers": {
     "title": "Login accounts",
@@ -163,5 +174,9 @@
     "invalid_session": "Your session has ended. Please sign in again.",
     "too_many_requests": "Too many requests. Wait a minute and try again.",
     "server_unreachable": "Cannot reach the server. Please try again shortly."
+  },
+  "theme": {
+    "toLight": "Light mode",
+    "toDark": "Dark mode"
   }
 }

@@ -11,7 +11,7 @@ export function LanguageSwitcher() {
       type="button"
       onClick={() => void changeLanguage(target)}
       aria-label={t('language.switchLabel')}
-      className="rounded-full border border-ink-700 px-4 py-1.5 text-sm font-semibold text-gold-300 transition hover:border-gold-500 hover:text-gold-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300"
+      className="rounded-full border border-sky-400/45 px-4 py-1.5 text-sm font-semibold text-sky-300 transition hover:border-sky-300 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
     >
       <span lang={target}>{target === 'ar' ? 'عربي' : 'English'}</span>
     </button>

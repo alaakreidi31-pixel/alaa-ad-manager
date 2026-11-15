@@ -19,7 +19,7 @@ type Step =
 const inputClass =
   'mt-1.5 w-full rounded-xl border border-ink-700 bg-ink-950 px-4 py-3 text-white placeholder:text-ink-400 focus:border-gold-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/40';
 const buttonClass =
-  'mt-6 w-full rounded-xl bg-gold-400 px-4 py-3 text-sm font-bold text-ink-950 transition hover:bg-gold-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300 disabled:opacity-60';
+  'mt-6 w-full rounded-xl bg-gold-400 px-4 py-3 text-sm font-bold text-on-gold transition hover:bg-gold-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300 disabled:opacity-60';
 
 function errorOf(error: unknown): AuthErrorCode {
   return error instanceof AuthApiError ? error.code : 'server_unreachable';
