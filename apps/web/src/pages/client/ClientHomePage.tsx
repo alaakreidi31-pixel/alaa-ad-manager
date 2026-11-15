@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/auth-context';
-import { ComingCard } from '../../components/DashboardCards';
+import { ComingCard, StatCard } from '../../components/DashboardCards';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ui } from '../../components/ui';
 import { getMyClientProfile, type ClientProfile } from '../../lib/admin-api';
 import { ApiError } from '../../lib/api-client';
+import {
+  getMyCampaignSummary,
+  lastDays,
+  type ClientCampaignSummary,
+} from '../../lib/campaigns-api';
 
 // The client portal overview (step 3.3). Only the client's own company
 // (the id comes from the session, never from the page), without internal
@@ -16,6 +21,7 @@ export function ClientHomePage() {
   const { state, api } = useAuth();
   const [profile, setProfile] = useState<ClientProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<ClientCampaignSummary | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -31,10 +37,39 @@ export function ClientHomePage() {
     };
   }, [api]);
 
+  // The last 30 days of the client's own campaigns (step 4.5).
+  useEffect(() => {
+    let active = true;
+    getMyCampaignSummary(api, lastDays(30))
+      .then((data) => {
+        if (active) setSummary(data);
+      })
+      .catch(() => {
+        // The company card above already shows a connection problem.
+      });
+    return () => {
+      active = false;
+    };
+  }, [api]);
+
   if (state.status !== 'signed_in') return null;
   const today = new Intl.DateTimeFormat(i18n.resolvedLanguage, { dateStyle: 'full' }).format(
     new Date(),
   );
+  // One line per currency: amounts in different currencies are never added.
+  const spendText = !summary
+    ? '…'
+    : summary.totals.length === 0
+      ? '0'
+      : summary.totals.map((total) => `${total.spend} ${total.currency}`).join(' + ');
+  const conversionsText = !summary
+    ? '…'
+    : (
+        summary.totals.reduce(
+          (sum, total) => sum + Math.round(Number(total.conversions) * 100),
+          0,
+        ) / 100
+      ).toFixed(2);
   const fields = profile
     ? ([
         ['contactName', profile.contactName, false],
@@ -69,22 +104,23 @@ export function ClientHomePage() {
         aria-label={t('clientPortal.indicators')}
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
-        <ComingCard
+        <StatCard
           label={t('clientPortal.spend')}
-          note={t('clientPortal.soon')}
-          phase={4}
+          value={spendText}
+          note={t('clientPortal.last30')}
           icon="campaigns"
+          tone="gold"
         />
-        <ComingCard
+        <StatCard
           label={t('clientPortal.results')}
-          note={t('clientPortal.soon')}
-          phase={4}
+          value={conversionsText}
+          note={t('clientPortal.last30')}
           icon="reports"
         />
-        <ComingCard
+        <StatCard
           label={t('clientPortal.activeCampaigns')}
-          note={t('clientPortal.soon')}
-          phase={4}
+          value={summary?.activeCampaigns ?? '…'}
+          note={t('clientPortal.seeCampaigns')}
           icon="tasks"
         />
         <ComingCard

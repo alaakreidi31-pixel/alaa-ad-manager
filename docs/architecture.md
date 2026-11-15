@@ -36,17 +36,18 @@
 
 ## صفحات الواجهة ([ADR 0015](decisions/0015-web-session-and-routing.md))
 
-| المسار                                                     | الصفحة                                                                                                                                                        | الملف                                             |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `/login`                                                   | الدخول: البريد وكلمة المرور، ثم رمز 2FA أو رمز احتياطي                                                                                                        | `apps/web/src/pages/LoginPage.tsx`                |
-| `/`                                                        | الرئيسية حسب الدور: للإدارة لوحة بأرقام حقيقية (`pages/admin/AdminDashboardPage.tsx`)، وللعميل نظرة عامة على شركته وحسابه (`pages/client/ClientHomePage.tsx`) | `apps/web/src/pages/HomePage.tsx`                 |
-| `/admin/clients`                                           | قائمة العملاء: بحث، وفلتر الحالة، وصفحات (`SUPER_ADMIN` فقط)                                                                                                  | `apps/web/src/pages/admin/ClientsListPage.tsx`    |
-| `/admin/clients/new` و`/admin/clients/:id/edit`            | إضافة عميل وتعديله                                                                                                                                            | `apps/web/src/pages/admin/ClientFormPage.tsx`     |
-| `/admin/clients/:id`                                       | تفاصيل العميل، وحالته، وحسابات دخوله، وكلمة المرور المؤقتة (تظهر مرة واحدة)                                                                                   | `apps/web/src/pages/admin/ClientDetailPage.tsx`   |
-| `/admin/campaigns`                                         | كل الحملات: بحث باسم الحملة أو العميل، وفلتر المنصة والحالة                                                                                                   | `apps/web/src/pages/admin/CampaignsListPage.tsx`  |
-| `/admin/clients/:id/campaigns/new` و`.../:campaignId/edit` | إضافة حملة لعميل وتعديلها                                                                                                                                     | `apps/web/src/pages/admin/CampaignFormPage.tsx`   |
-| `/admin/clients/:id/campaigns/import`                      | استيراد CSV: اختيار المنصة والملف، ثم المعاينة، ثم التأكيد                                                                                                    | `apps/web/src/pages/admin/CampaignImportPage.tsx` |
-| `/admin/clients/:id/campaigns/:campaignId`                 | الحملة وحالتها، والأرقام اليومية مع المجاميع، وإدخال يوم أو تصحيحه                                                                                            | `apps/web/src/pages/admin/CampaignDetailPage.tsx` |
+| المسار                                                     | الصفحة                                                                                                                                                        | الملف                                                                         |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `/login`                                                   | الدخول: البريد وكلمة المرور، ثم رمز 2FA أو رمز احتياطي                                                                                                        | `apps/web/src/pages/LoginPage.tsx`                                            |
+| `/`                                                        | الرئيسية حسب الدور: للإدارة لوحة بأرقام حقيقية (`pages/admin/AdminDashboardPage.tsx`)، وللعميل نظرة عامة على شركته وحسابه (`pages/client/ClientHomePage.tsx`) | `apps/web/src/pages/HomePage.tsx`                                             |
+| `/campaigns` و`/campaigns/:campaignId`                     | بوابة العميل: حملاته وأرقامها اليومية، للقراءة فقط                                                                                                            | `apps/web/src/pages/client/ClientCampaignsPage.tsx` و`ClientCampaignPage.tsx` |
+| `/admin/clients`                                           | قائمة العملاء: بحث، وفلتر الحالة، وصفحات (`SUPER_ADMIN` فقط)                                                                                                  | `apps/web/src/pages/admin/ClientsListPage.tsx`                                |
+| `/admin/clients/new` و`/admin/clients/:id/edit`            | إضافة عميل وتعديله                                                                                                                                            | `apps/web/src/pages/admin/ClientFormPage.tsx`                                 |
+| `/admin/clients/:id`                                       | تفاصيل العميل، وحالته، وحسابات دخوله، وكلمة المرور المؤقتة (تظهر مرة واحدة)                                                                                   | `apps/web/src/pages/admin/ClientDetailPage.tsx`                               |
+| `/admin/campaigns`                                         | كل الحملات: بحث باسم الحملة أو العميل، وفلتر المنصة والحالة                                                                                                   | `apps/web/src/pages/admin/CampaignsListPage.tsx`                              |
+| `/admin/clients/:id/campaigns/new` و`.../:campaignId/edit` | إضافة حملة لعميل وتعديلها                                                                                                                                     | `apps/web/src/pages/admin/CampaignFormPage.tsx`                               |
+| `/admin/clients/:id/campaigns/import`                      | استيراد CSV: اختيار المنصة والملف، ثم المعاينة، ثم التأكيد                                                                                                    | `apps/web/src/pages/admin/CampaignImportPage.tsx`                             |
+| `/admin/clients/:id/campaigns/:campaignId`                 | الحملة وحالتها، والأرقام اليومية مع المجاميع، وإدخال يوم أو تصحيحه                                                                                            | `apps/web/src/pages/admin/CampaignDetailPage.tsx`                             |
 
 - الجلسة في `apps/web/src/auth/auth-context.tsx`: الـ Access Token في الذاكرة فقط، ويُجدَّد تلقائياً قبل انتهائه.
 - التنقل بمكتبة `react-router` الإصدار 7.
@@ -83,9 +84,12 @@
 
 لحسابات `CLIENT_USER` فقط (`AccessTokenGuard` ثم `ClientUserGuard`). **لا يقبل أي مسار رقم عميل من الطلب**: العميل يُؤخذ من الجلسة دائماً.
 
-| النقطة                    | الوظيفة                                     |
-| ------------------------- | ------------------------------------------- |
-| `GET /api/client/profile` | بيانات شركة العميل، بدون الملاحظات الداخلية |
+| النقطة                                          | الوظيفة                                                          |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| `GET /api/client/campaigns`                     | حملات العميل (بلا المؤرشفة وبلا رقم المنصة)                      |
+| `GET /api/client/campaign-summary`              | مجاميع فترة (افتراضياً آخر 30 يوماً) لكل عملة، وعدد الحملات النشطة |
+| `GET /api/client/campaigns/:campaignId/metrics` | الأرقام اليومية لحملة من حملاته فقط (غير ذلك 404)                |
+| `GET /api/client/profile`                       | بيانات شركة العميل، بدون الملاحظات الداخلية                      |
 
 ## قاعدة البيانات
 
@@ -205,7 +209,7 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (321 اختباراً)
+## الاختبارات الموجودة (325 اختباراً)
 
 | الملف                                                     | العدد | ماذا يحمي                                                                                             |
 | --------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------- |
@@ -247,6 +251,7 @@ alaa-ad-manager/
 | `apps/web/src/lib/campaigns-api.test.ts`                  | 2     | فترة آخر N يوماً، ونسب العرض (نسبة النقر، والتكلفة) بلا قسمة على صفر                                   |
 | `apps/api/src/campaigns/csv-import.spec.ts`               | 7     | قراءة تقارير Meta وGoogle: الأعمدة بالعربية والإنجليزية، وأسطر العنوان والمجموع، وكل سطر خاطئ مع سببه |
 | `apps/api/src/campaigns/campaign-import.db-spec.ts`       | 6     | الاستيراد: المعاينة لا تكتب، والكل أو لا شيء، وإعادة الاستيراد لا تكرر، وIDOR، و401/403               |
+| `apps/api/src/campaigns/client-campaigns.http.db-spec.ts` | 4     | بوابة العميل: حملاته فقط بلا المؤرشفة، والمجاميع لكل عملة، وIDOR، و401/403                            |
 | `apps/web/src/i18n/locales.test.ts`                       | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                             |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.

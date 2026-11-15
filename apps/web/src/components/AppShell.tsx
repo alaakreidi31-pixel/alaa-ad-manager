@@ -30,7 +30,7 @@ const ADMIN_NAV: NavItem[] = [
 // The client portal menu: a client sees only its own company's pages.
 const CLIENT_NAV: NavItem[] = [
   { key: 'overview', icon: 'home', to: '/', end: true },
-  { key: 'campaigns', icon: 'campaigns' },
+  { key: 'campaigns', icon: 'campaigns', to: '/campaigns' },
   { key: 'reports', icon: 'reports' },
   { key: 'invoices', icon: 'invoices' },
 ];

@@ -187,3 +187,39 @@ export const commitImport = (
   clientId: string,
   input: { platform: CampaignPlatform; csv: string },
 ) => api<ImportPreview>(`${imports(clientId)}/commit`, { method: 'POST', body: input });
+
+// Client portal (step 4.5): the client's own campaigns, read only.
+export type ClientCampaign = Pick<
+  Campaign,
+  | 'id'
+  | 'platform'
+  | 'name'
+  | 'objective'
+  | 'status'
+  | 'currency'
+  | 'dailyBudget'
+  | 'startDate'
+  | 'endDate'
+>;
+
+export interface ClientCampaignSummary {
+  from: string;
+  to: string;
+  activeCampaigns: number;
+  // One line per currency: amounts in different currencies are never added.
+  totals: (MetricsReport['totals'] & { currency: string })[];
+}
+
+export const listMyCampaigns = (api: Api) => api<ClientCampaign[]>('/client/campaigns');
+
+export const getMyCampaignSummary = (api: Api, range: { from: string; to: string }) =>
+  api<ClientCampaignSummary>('/client/campaign-summary', { query: { ...range } });
+
+export const getMyCampaignMetrics = (
+  api: Api,
+  campaignId: string,
+  range: { from: string; to: string },
+) =>
+  api<MetricsReport>(`/client/campaigns/${encodeURIComponent(campaignId)}/metrics`, {
+    query: { ...range },
+  });

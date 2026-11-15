@@ -159,7 +159,7 @@
   },
   "clientPortal": {
     "company": "Your company",
-    "comingSoon": "Campaigns, reports and invoices will appear here soon.",
+    "comingSoon": "Reports and invoices will appear here soon.",
     "subtitle": "{{company}} dashboard at ALAA MARKETING GROUP",
     "indicators": "Your campaign indicators",
     "spend": "Ad spend",
@@ -169,7 +169,9 @@
     "account": "Your account",
     "signedInAs": "Signed in as",
     "nextTitle": "Coming to your portal",
-    "soon": "Coming soon"
+    "soon": "Coming soon",
+    "last30": "Last 30 days",
+    "seeCampaigns": "See the Campaigns page"
   },
   "apiErrors": {
     "invalid_input": "Some fields are invalid. Fix the ones marked in red.",
@@ -352,5 +354,10 @@
     "nothing": "This file has no days to import.",
     "done": "Imported ✓ New days: {{newDays}}, days corrected: {{corrections}}.",
     "backToClient": "Back to the client"
+  },
+  "clientCampaigns": {
+    "title": "Your campaigns",
+    "empty": "No campaigns yet.",
+    "open": "View numbers →"
   }
 }

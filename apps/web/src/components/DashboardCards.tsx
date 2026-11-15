@@ -10,7 +10,8 @@ export function StatCard({
   tone = 'sky',
 }: {
   label: string;
-  value: number;
+  // A count, or text already formatted (money: "150.50 USD").
+  value: number | string;
   note: string;
   icon: IconName;
   tone?: 'sky' | 'gold';
@@ -28,7 +29,7 @@ export function StatCard({
         </span>
       </div>
       <span dir="ltr" className="text-end text-3xl font-bold tracking-tight">
-        {value.toLocaleString('en-US')}
+        {typeof value === 'number' ? value.toLocaleString('en-US') : value}
       </span>
       <span className="text-xs text-ink-400">{note}</span>
     </div>

@@ -10,11 +10,15 @@ import { CampaignsListPage } from './pages/admin/CampaignsListPage';
 import { ClientDetailPage } from './pages/admin/ClientDetailPage';
 import { ClientFormPage } from './pages/admin/ClientFormPage';
 import { ClientsListPage } from './pages/admin/ClientsListPage';
+import { ClientCampaignPage } from './pages/client/ClientCampaignPage';
+import { ClientCampaignsPage } from './pages/client/ClientCampaignsPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 
 // Administration pages: SUPER_ADMIN only.
 const admin = (page: ReactNode) => <RequireRole role="SUPER_ADMIN">{page}</RequireRole>;
+// Client portal pages: CLIENT_USER only.
+const client = (page: ReactNode) => <RequireRole role="CLIENT_USER">{page}</RequireRole>;
 
 // The layout (menu, header) is chosen by role in AppShell. Layout uses logical
 // spacing (ps/pe/ms/me, start/end) so pages flip between English and Arabic.
@@ -57,6 +61,8 @@ export function App() {
             path="/admin/clients/:id/campaigns/:campaignId/edit"
             element={admin(<CampaignFormPage />)}
           />
+          <Route path="/campaigns" element={client(<ClientCampaignsPage />)} />
+          <Route path="/campaigns/:campaignId" element={client(<ClientCampaignPage />)} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell>

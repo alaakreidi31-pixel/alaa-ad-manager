@@ -18,6 +18,8 @@ import { CampaignImportController } from '../campaigns/campaign-import.controlle
 import { CampaignImportService } from '../campaigns/campaign-import.service';
 import { CampaignMetricsController } from '../campaigns/campaign-metrics.controller';
 import { CampaignMetricsService } from '../campaigns/campaign-metrics.service';
+import { ClientCampaignsController } from '../campaigns/client-campaigns.controller';
+import { ClientCampaignsService } from '../campaigns/client-campaigns.service';
 import { CampaignsController } from '../campaigns/campaigns.controller';
 import { CampaignsService } from '../campaigns/campaigns.service';
 import { ClientPortalController } from '../clients/client-portal.controller';
@@ -60,6 +62,7 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       CampaignMetricsController,
       AllCampaignsController,
       CampaignImportController,
+      ClientCampaignsController,
       DashboardController,
     ],
     providers: [
@@ -72,6 +75,10 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       { provide: CampaignsService, useValue: new CampaignsService(db) },
       { provide: CampaignMetricsService, useValue: new CampaignMetricsService(db) },
       { provide: CampaignImportService, useValue: new CampaignImportService(db) },
+      {
+        provide: ClientCampaignsService,
+        useValue: new ClientCampaignsService(db, new CampaignMetricsService(db)),
+      },
       { provide: DashboardService, useValue: new DashboardService(db) },
       AccessTokenGuard,
       SuperAdminGuard,
