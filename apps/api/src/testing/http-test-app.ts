@@ -19,6 +19,8 @@ import { ClientUsersController } from '../clients/client-users.controller';
 import { ClientUsersService } from '../clients/client-users.service';
 import { ClientsController } from '../clients/clients.controller';
 import { ClientsService } from '../clients/clients.service';
+import { DashboardController } from '../dashboard/dashboard.controller';
+import { DashboardService } from '../dashboard/dashboard.service';
 import type { PrismaClient } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -43,7 +45,12 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
 
   class HttpTestModule {}
   Module({
-    controllers: [ClientsController, ClientUsersController, ClientPortalController],
+    controllers: [
+      ClientsController,
+      ClientUsersController,
+      ClientPortalController,
+      DashboardController,
+    ],
     providers: [
       { provide: PrismaService, useValue: db },
       { provide: AuditService, useValue: audit },
@@ -51,6 +58,7 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       { provide: ClientsService, useValue: new ClientsService(db) },
       { provide: ClientUsersService, useValue: new ClientUsersService(db) },
       { provide: ClientPortalService, useValue: new ClientPortalService(db) },
+      { provide: DashboardService, useValue: new DashboardService(db) },
       AccessTokenGuard,
       SuperAdminGuard,
       ClientUserGuard,

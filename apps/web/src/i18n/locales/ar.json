@@ -159,7 +159,17 @@
   },
   "clientPortal": {
     "company": "شركتك",
-    "comingSoon": "الحملات والتقارير والفواتير ستظهر هنا قريباً."
+    "comingSoon": "الحملات والتقارير والفواتير ستظهر هنا قريباً.",
+    "subtitle": "لوحة {{company}} في ALAA MARKETING GROUP",
+    "indicators": "مؤشرات حملاتك",
+    "spend": "الإنفاق الإعلاني",
+    "results": "النتائج",
+    "activeCampaigns": "الحملات النشطة",
+    "dueInvoices": "الفواتير المستحقة",
+    "account": "حسابك",
+    "signedInAs": "تسجّل الدخول باسم",
+    "nextTitle": "قريباً في بوابتك",
+    "soon": "يظهر هنا قريباً"
   },
   "apiErrors": {
     "invalid_input": "بعض الحقول غير صالحة. صحّحي المحدد باللون الأحمر.",
@@ -178,5 +188,33 @@
   "theme": {
     "toLight": "الوضع الفاتح",
     "toDark": "الوضع الداكن"
+  },
+  "dashboard": {
+    "morning": "صباح الخير، {{name}}",
+    "afternoon": "مساء الخير، {{name}}",
+    "evening": "مساء الخير، {{name}}",
+    "indicators": "المؤشرات الرئيسية",
+    "money": "الأموال والحملات",
+    "activeClients": "العملاء النشطون",
+    "ofTotal": "من أصل {{total}} عميل",
+    "suspendedClients": "العملاء الموقوفون",
+    "archivedCount": "المؤرشفون: {{count}}",
+    "accounts": "حسابات الدخول النشطة",
+    "accountsNote": "الموقوفة: {{suspended}}",
+    "pendingPassword": "بانتظار أول دخول",
+    "pendingPasswordNote": "لم يغيّروا كلمة المرور المؤقتة بعد",
+    "adSpend": "الإنفاق الإعلاني",
+    "fees": "أتعاب الوكالة",
+    "dueInvoices": "الفواتير المستحقة",
+    "activeCampaigns": "الحملات النشطة",
+    "comingInPhase": "تظهر هنا بعد المرحلة {{phase}}",
+    "recentClients": "آخر العملاء المضافين",
+    "viewAll": "عرض الكل ←",
+    "attention": {
+      "title": "يحتاج انتباهك",
+      "none": "لا شيء يحتاج انتباهك الآن ✓",
+      "pendingPassword": "حسابات لم تدخل بعد بكلمة المرور المؤقتة: {{count}}",
+      "suspendedClients": "عملاء موقوفون: {{count}}"
+    }
   }
 }

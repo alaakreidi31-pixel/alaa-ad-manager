@@ -113,3 +113,13 @@ export const changeClientUserStatus = (
   );
 
 export const getMyClientProfile = (api: Api) => api<ClientProfile>('/client/profile');
+
+// Administration home page summary (step 3.2): real counts only.
+export interface AdminDashboard {
+  clients: Record<ClientStatus, number> & { total: number };
+  accounts: { total: number; active: number; suspended: number; pendingPasswordChange: number };
+  recentClients: { id: string; name: string; status: ClientStatus; createdAt: string }[];
+  generatedAt: string;
+}
+
+export const getAdminDashboard = (api: Api) => api<AdminDashboard>('/admin/dashboard');

@@ -36,13 +36,13 @@
 
 ## صفحات الواجهة ([ADR 0015](decisions/0015-web-session-and-routing.md))
 
-| المسار                                          | الصفحة                                                                                     | الملف                                           |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------- |
-| `/login`                                        | الدخول: البريد وكلمة المرور، ثم رمز 2FA أو رمز احتياطي                                     | `apps/web/src/pages/LoginPage.tsx`              |
-| `/`                                             | الرئيسية حسب الدور: للإدارة رابط العملاء وحالة النظام، وللعميل بيانات شركته (بوابة العميل) | `apps/web/src/pages/HomePage.tsx`               |
-| `/admin/clients`                                | قائمة العملاء: بحث، وفلتر الحالة، وصفحات (`SUPER_ADMIN` فقط)                               | `apps/web/src/pages/admin/ClientsListPage.tsx`  |
-| `/admin/clients/new` و`/admin/clients/:id/edit` | إضافة عميل وتعديله                                                                         | `apps/web/src/pages/admin/ClientFormPage.tsx`   |
-| `/admin/clients/:id`                            | تفاصيل العميل، وحالته، وحسابات دخوله، وكلمة المرور المؤقتة (تظهر مرة واحدة)                | `apps/web/src/pages/admin/ClientDetailPage.tsx` |
+| المسار                                          | الصفحة                                                                                                                                                        | الملف                                           |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `/login`                                        | الدخول: البريد وكلمة المرور، ثم رمز 2FA أو رمز احتياطي                                                                                                        | `apps/web/src/pages/LoginPage.tsx`              |
+| `/`                                             | الرئيسية حسب الدور: للإدارة لوحة بأرقام حقيقية (`pages/admin/AdminDashboardPage.tsx`)، وللعميل نظرة عامة على شركته وحسابه (`pages/client/ClientHomePage.tsx`) | `apps/web/src/pages/HomePage.tsx`               |
+| `/admin/clients`                                | قائمة العملاء: بحث، وفلتر الحالة، وصفحات (`SUPER_ADMIN` فقط)                                                                                                  | `apps/web/src/pages/admin/ClientsListPage.tsx`  |
+| `/admin/clients/new` و`/admin/clients/:id/edit` | إضافة عميل وتعديله                                                                                                                                            | `apps/web/src/pages/admin/ClientFormPage.tsx`   |
+| `/admin/clients/:id`                            | تفاصيل العميل، وحالته، وحسابات دخوله، وكلمة المرور المؤقتة (تظهر مرة واحدة)                                                                                   | `apps/web/src/pages/admin/ClientDetailPage.tsx` |
 
 - الجلسة في `apps/web/src/auth/auth-context.tsx`: الـ Access Token في الذاكرة فقط، ويُجدَّد تلقائياً قبل انتهائه.
 - التنقل بمكتبة `react-router` الإصدار 7.
@@ -51,20 +51,21 @@
 
 كلها لـ `SUPER_ADMIN` فقط (`AccessTokenGuard` ثم `SuperAdminGuard`). حساب العميل يحصل على 403.
 
-| النقطة                                                     | الوظيفة                                            |
-| ---------------------------------------------------------- | -------------------------------------------------- |
-| `GET /api/admin/clients`                                   | القائمة: `search` و`status` و`page` و`pageSize`    |
-| `POST /api/admin/clients`                                  | إضافة عميل                                         |
-| `GET /api/admin/clients/:id`                               | تفاصيل عميل                                        |
-| `PATCH /api/admin/clients/:id`                             | تعديل (مرفوض للعميل المؤرشف)                       |
-| `POST /api/admin/clients/:id/suspend`                      | إيقاف مؤقت                                         |
-| `POST /api/admin/clients/:id/archive`                      | أرشفة                                              |
-| `POST /api/admin/clients/:id/activate`                     | إعادة تفعيل                                        |
-| `GET /api/admin/clients/:id/users`                         | حسابات دخول العميل                                 |
-| `POST /api/admin/clients/:id/users`                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة |
-| `POST /api/admin/clients/:id/users/:userId/reset-password` | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب       |
-| `POST /api/admin/clients/:id/users/:userId/suspend`        | إيقاف حساب واحد                                    |
-| `POST /api/admin/clients/:id/users/:userId/activate`       | إعادة تفعيل حساب                                   |
+| النقطة                                                     | الوظيفة                                                 |
+| ---------------------------------------------------------- | ------------------------------------------------------- |
+| `GET /api/admin/dashboard`                                 | ملخص اللوحة: العملاء والحسابات حسب الحالة، وآخر 5 عملاء |
+| `GET /api/admin/clients`                                   | القائمة: `search` و`status` و`page` و`pageSize`         |
+| `POST /api/admin/clients`                                  | إضافة عميل                                              |
+| `GET /api/admin/clients/:id`                               | تفاصيل عميل                                             |
+| `PATCH /api/admin/clients/:id`                             | تعديل (مرفوض للعميل المؤرشف)                            |
+| `POST /api/admin/clients/:id/suspend`                      | إيقاف مؤقت                                              |
+| `POST /api/admin/clients/:id/archive`                      | أرشفة                                                   |
+| `POST /api/admin/clients/:id/activate`                     | إعادة تفعيل                                             |
+| `GET /api/admin/clients/:id/users`                         | حسابات دخول العميل                                      |
+| `POST /api/admin/clients/:id/users`                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة      |
+| `POST /api/admin/clients/:id/users/:userId/reset-password` | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب            |
+| `POST /api/admin/clients/:id/users/:userId/suspend`        | إيقاف حساب واحد                                         |
+| `POST /api/admin/clients/:id/users/:userId/activate`       | إعادة تفعيل حساب                                        |
 
 ## بوابة العميل (`/api/client`)
 
@@ -213,6 +214,7 @@ alaa-ad-manager/
 | `apps/api/src/auth/client-user.guard.spec.ts`           | 3     | بوابة العميل لحسابات `CLIENT_USER` فقط                                                      |
 | `apps/api/src/clients/client-accounts.db-spec.ts`       | 17    | حسابات العملاء: كلمة المرور المؤقتة، والتغيير الإجباري، وإيقاف العميل وأرشفته، وIDOR        |
 | `apps/api/src/clients/client-portal.http.db-spec.ts`    | 7     | عبر HTTP: كل عميل يرى بياناته فقط، بلا ملاحظات داخلية، وIDOR بين عميلين                     |
+| `apps/api/src/dashboard/dashboard.http.db-spec.ts`      | 4     | لوحة الإدارة: 401 و403، وأعداد حقيقية من القاعدة، وبلا ملاحظات داخلية                       |
 | `apps/web/src/i18n/locales.test.ts`                     | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                   |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.

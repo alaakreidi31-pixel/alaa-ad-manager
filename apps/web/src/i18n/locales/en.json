@@ -159,7 +159,17 @@
   },
   "clientPortal": {
     "company": "Your company",
-    "comingSoon": "Campaigns, reports and invoices will appear here soon."
+    "comingSoon": "Campaigns, reports and invoices will appear here soon.",
+    "subtitle": "{{company}} dashboard at ALAA MARKETING GROUP",
+    "indicators": "Your campaign indicators",
+    "spend": "Ad spend",
+    "results": "Results",
+    "activeCampaigns": "Active campaigns",
+    "dueInvoices": "Invoices due",
+    "account": "Your account",
+    "signedInAs": "Signed in as",
+    "nextTitle": "Coming to your portal",
+    "soon": "Coming soon"
   },
   "apiErrors": {
     "invalid_input": "Some fields are invalid. Fix the ones marked in red.",
@@ -178,5 +188,33 @@
   "theme": {
     "toLight": "Light mode",
     "toDark": "Dark mode"
+  },
+  "dashboard": {
+    "morning": "Good morning, {{name}}",
+    "afternoon": "Good afternoon, {{name}}",
+    "evening": "Good evening, {{name}}",
+    "indicators": "Key indicators",
+    "money": "Money and campaigns",
+    "activeClients": "Active clients",
+    "ofTotal": "Out of {{total}} clients",
+    "suspendedClients": "Suspended clients",
+    "archivedCount": "Archived: {{count}}",
+    "accounts": "Active login accounts",
+    "accountsNote": "Suspended: {{suspended}}",
+    "pendingPassword": "Awaiting first sign-in",
+    "pendingPasswordNote": "Have not changed their temporary password yet",
+    "adSpend": "Ad spend",
+    "fees": "Agency fees",
+    "dueInvoices": "Invoices due",
+    "activeCampaigns": "Active campaigns",
+    "comingInPhase": "Appears here after phase {{phase}}",
+    "recentClients": "Recently added clients",
+    "viewAll": "View all →",
+    "attention": {
+      "title": "Needs your attention",
+      "none": "Nothing needs your attention right now ✓",
+      "pendingPassword": "Accounts not yet signed in with their temporary password: {{count}}",
+      "suspendedClients": "Suspended clients: {{count}}"
+    }
   }
 }
