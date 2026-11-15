@@ -3,11 +3,16 @@ import 'dotenv/config';
 
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { env } from './config/env';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // JSON bodies up to 3 MB: a CSV import sends the file text (step 4.3,
+  // at most 2000 lines). The default limit is 100 KB.
+  app.useBodyParser('json', { limit: '3mb' });
 
   // Every route lives under /api  ->  /api/health, /api/clients, ...
   app.setGlobalPrefix('api');

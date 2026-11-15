@@ -14,6 +14,8 @@ import { ClientUserGuard } from '../auth/client-user.guard';
 import { SecretBox } from '../auth/secret-box';
 import { SuperAdminGuard } from '../auth/super-admin.guard';
 import { AllCampaignsController } from '../campaigns/all-campaigns.controller';
+import { CampaignImportController } from '../campaigns/campaign-import.controller';
+import { CampaignImportService } from '../campaigns/campaign-import.service';
 import { CampaignMetricsController } from '../campaigns/campaign-metrics.controller';
 import { CampaignMetricsService } from '../campaigns/campaign-metrics.service';
 import { CampaignsController } from '../campaigns/campaigns.controller';
@@ -57,6 +59,7 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       CampaignsController,
       CampaignMetricsController,
       AllCampaignsController,
+      CampaignImportController,
       DashboardController,
     ],
     providers: [
@@ -68,6 +71,7 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       { provide: ClientPortalService, useValue: new ClientPortalService(db) },
       { provide: CampaignsService, useValue: new CampaignsService(db) },
       { provide: CampaignMetricsService, useValue: new CampaignMetricsService(db) },
+      { provide: CampaignImportService, useValue: new CampaignImportService(db) },
       { provide: DashboardService, useValue: new DashboardService(db) },
       AccessTokenGuard,
       SuperAdminGuard,

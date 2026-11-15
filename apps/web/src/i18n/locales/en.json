@@ -188,7 +188,8 @@
     "campaign_archived": "The campaign is archived and cannot be changed.",
     "external_id_taken": "This client already has a campaign with this id on this platform.",
     "currency_locked": "The currency cannot change once daily numbers exist.",
-    "future_day": "Numbers cannot be entered for a future day."
+    "future_day": "Numbers cannot be entered for a future day.",
+    "import_has_errors": "The file has lines with problems: nothing was saved."
   },
   "theme": {
     "toLight": "Light mode",
@@ -298,5 +299,58 @@
       "save": "Save day",
       "saved": "The day was saved ✓"
     }
+  },
+  "imports": {
+    "button": "Import CSV",
+    "title": "Import numbers from a CSV file",
+    "hint": "Export a daily report from Meta Ads Manager or Google Ads, with the Campaign ID column. Each line goes to the campaign with the same platform id.",
+    "tooBig": "The file is larger than 2 MB. Export a shorter period.",
+    "check": "Check file",
+    "file": {
+      "label": "CSV file",
+      "missing_columns": "The file has no column for: {{columns}}",
+      "empty": "The file is empty.",
+      "too_many_rows": "The file has more than 2000 lines. Export a shorter period.",
+      "unreadable": "The file could not be read."
+    },
+    "columns": {
+      "date": "Day",
+      "externalId": "Campaign ID",
+      "spend": "Spend",
+      "impressions": "Impressions",
+      "clicks": "Clicks",
+      "conversions": "Conversions"
+    },
+    "summary": {
+      "newDays": "New days",
+      "corrections": "Days corrected",
+      "campaigns": "Campaigns",
+      "errors": "Lines with a problem"
+    },
+    "errorsTitle": "Lines with a problem",
+    "errorsHint": "Nothing is saved until every line is fixed: fix the file or the campaigns, then check again.",
+    "line": "Line {{line}}:",
+    "lineHeader": "Line",
+    "change": "Change",
+    "changes": {
+      "new": "New",
+      "correction": "Correction"
+    },
+    "problems": {
+      "bad_date": "Unreadable date (expected like 2026-11-15).",
+      "bad_number": "Invalid number.",
+      "missing_campaign_id": "No campaign id.",
+      "duplicate_row": "The same campaign and day appear twice in the file.",
+      "unknown_campaign": "This client has no campaign with this id on this platform. Add the id to the campaign first.",
+      "archived_campaign": "The campaign is archived.",
+      "bad_amount": "The amount has more decimals than the campaign currency.",
+      "future_day": "A future day."
+    },
+    "moreRows": "and {{count}} more lines.",
+    "confirm": "Confirm import ({{count}} days)",
+    "fixFirst": "Fix the lines with a problem first.",
+    "nothing": "This file has no days to import.",
+    "done": "Imported ✓ New days: {{newDays}}, days corrected: {{corrections}}.",
+    "backToClient": "Back to the client"
   }
 }

@@ -55,3 +55,10 @@ export class FutureDayError extends Error {
     super('Numbers cannot be entered for a future day');
   }
 }
+
+// A CSV import is all or nothing: refused while one line has a problem.
+export class ImportHasErrorsError extends Error {
+  constructor(readonly count: number) {
+    super(`The file has ${count} line(s) with problems: nothing was imported`);
+  }
+}

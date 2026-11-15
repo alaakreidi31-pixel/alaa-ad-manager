@@ -142,3 +142,48 @@ export function ratios(totals: MetricsReport['totals']) {
     cpa: conversions > 0 ? spend / conversions : null,
   };
 }
+
+// CSV import (step 4.3): "preview" writes nothing; "commit" saves all or none.
+export type ImportProblem =
+  | 'bad_date'
+  | 'bad_number'
+  | 'missing_campaign_id'
+  | 'duplicate_row'
+  | 'unknown_campaign'
+  | 'archived_campaign'
+  | 'bad_amount'
+  | 'future_day';
+
+export interface ImportPreview {
+  platform: CampaignPlatform;
+  rows: {
+    line: number;
+    date: string;
+    campaignId: string;
+    campaignName: string;
+    externalId: string;
+    currency: string;
+    spend: string;
+    impressions: number;
+    clicks: number;
+    conversions: string;
+    change: 'new' | 'correction';
+  }[];
+  errors: { line: number; reason: ImportProblem; externalId?: string }[];
+  summary: { newDays: number; corrections: number; errors: number; campaigns: number };
+}
+
+const imports = (clientId: string) =>
+  `/admin/clients/${encodeURIComponent(clientId)}/campaign-imports`;
+
+export const previewImport = (
+  api: Api,
+  clientId: string,
+  input: { platform: CampaignPlatform; csv: string },
+) => api<ImportPreview>(`${imports(clientId)}/preview`, { method: 'POST', body: input });
+
+export const commitImport = (
+  api: Api,
+  clientId: string,
+  input: { platform: CampaignPlatform; csv: string },
+) => api<ImportPreview>(`${imports(clientId)}/commit`, { method: 'POST', body: input });

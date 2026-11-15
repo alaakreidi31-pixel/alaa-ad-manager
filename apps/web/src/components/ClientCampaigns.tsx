@@ -34,9 +34,14 @@ export function ClientCampaigns({ clientId, archived }: { clientId: string; arch
       <div className="mt-10 flex flex-wrap items-center gap-3">
         <h2 className="me-auto text-xl font-bold text-white">{t('campaigns.title')}</h2>
         {!archived && (
-          <Link to={`/admin/clients/${clientId}/campaigns/new`} className={ui.primary}>
-            {t('campaigns.add')}
-          </Link>
+          <>
+            <Link to={`/admin/clients/${clientId}/campaigns/import`} className={ui.secondary}>
+              {t('imports.button')}
+            </Link>
+            <Link to={`/admin/clients/${clientId}/campaigns/new`} className={ui.primary}>
+              {t('campaigns.add')}
+            </Link>
+          </>
         )}
       </div>
       {error && (

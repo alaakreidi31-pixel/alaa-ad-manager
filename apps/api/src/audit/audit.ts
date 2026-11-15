@@ -37,6 +37,8 @@ export type AuditAction =
   | 'admin.campaign.status_changed'
   // The numbers of one day were entered or corrected (metadata.date).
   | 'admin.campaign_metrics.saved'
+  // A CSV file of daily numbers was imported (counts in metadata).
+  | 'admin.campaign_metrics.imported'
   // Correct temporary password: the user must now choose a new one.
   | 'auth.login.password_change_required'
   | 'auth.password.changed';

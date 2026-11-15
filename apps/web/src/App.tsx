@@ -5,6 +5,7 @@ import { GuestOnly, RequireAuth, RequireRole } from './auth/route-guards';
 import { AppShell } from './components/AppShell';
 import { CampaignDetailPage } from './pages/admin/CampaignDetailPage';
 import { CampaignFormPage } from './pages/admin/CampaignFormPage';
+import { CampaignImportPage } from './pages/admin/CampaignImportPage';
 import { CampaignsListPage } from './pages/admin/CampaignsListPage';
 import { ClientDetailPage } from './pages/admin/ClientDetailPage';
 import { ClientFormPage } from './pages/admin/ClientFormPage';
@@ -44,6 +45,10 @@ export function App() {
           <Route path="/admin/clients/:id/edit" element={admin(<ClientFormPage />)} />
           <Route path="/admin/campaigns" element={admin(<CampaignsListPage />)} />
           <Route path="/admin/clients/:id/campaigns/new" element={admin(<CampaignFormPage />)} />
+          <Route
+            path="/admin/clients/:id/campaigns/import"
+            element={admin(<CampaignImportPage />)}
+          />
           <Route
             path="/admin/clients/:id/campaigns/:campaignId"
             element={admin(<CampaignDetailPage />)}
