@@ -7,6 +7,8 @@ import { CampaignDetailPage } from './pages/admin/CampaignDetailPage';
 import { CampaignFormPage } from './pages/admin/CampaignFormPage';
 import { CampaignImportPage } from './pages/admin/CampaignImportPage';
 import { CampaignsListPage } from './pages/admin/CampaignsListPage';
+import { InvoiceDetailPage } from './pages/admin/InvoiceDetailPage';
+import { InvoicesListPage } from './pages/admin/InvoicesListPage';
 import { ClientDetailPage } from './pages/admin/ClientDetailPage';
 import { ClientFormPage } from './pages/admin/ClientFormPage';
 import { ClientsListPage } from './pages/admin/ClientsListPage';
@@ -48,6 +50,8 @@ export function App() {
           <Route path="/admin/clients/:id" element={admin(<ClientDetailPage />)} />
           <Route path="/admin/clients/:id/edit" element={admin(<ClientFormPage />)} />
           <Route path="/admin/campaigns" element={admin(<CampaignsListPage />)} />
+          <Route path="/admin/invoices" element={admin(<InvoicesListPage />)} />
+          <Route path="/admin/invoices/:id" element={admin(<InvoiceDetailPage />)} />
           <Route path="/admin/clients/:id/campaigns/new" element={admin(<CampaignFormPage />)} />
           <Route
             path="/admin/clients/:id/campaigns/import"

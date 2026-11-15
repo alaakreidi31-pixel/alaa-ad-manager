@@ -46,6 +46,7 @@
 | `/admin/clients/:id`                                       | تفاصيل العميل، وحالته، وحسابات دخوله، وكلمة المرور المؤقتة (تظهر مرة واحدة)                                                                                   | `apps/web/src/pages/admin/ClientDetailPage.tsx`                               |
 | `/admin/campaigns`                                         | كل الحملات: بحث باسم الحملة أو العميل، وفلتر المنصة والحالة                                                                                                   | `apps/web/src/pages/admin/CampaignsListPage.tsx`                              |
 | `/admin/clients/:id/campaigns/new` و`.../:campaignId/edit` | إضافة حملة لعميل وتعديلها                                                                                                                                     | `apps/web/src/pages/admin/CampaignFormPage.tsx`                               |
+| `/admin/invoices` و`/admin/invoices/:id`                   | الفواتير: تجهيز المسودات تلقائياً، والمراجعة والإصدار، والدفعات، والإلغاء مع السبب                                                                             | `apps/web/src/pages/admin/InvoicesListPage.tsx` و`InvoiceDetailPage.tsx`      |
 | `/admin/clients/:id/campaigns/import`                      | استيراد CSV: اختيار المنصة والملف، ثم المعاينة، ثم التأكيد                                                                                                    | `apps/web/src/pages/admin/CampaignImportPage.tsx`                             |
 | `/admin/clients/:id/campaigns/:campaignId`                 | الحملة وحالتها، والأرقام اليومية مع المجاميع، وإدخال يوم أو تصحيحه                                                                                            | `apps/web/src/pages/admin/CampaignDetailPage.tsx`                             |
 
@@ -56,40 +57,40 @@
 
 كلها لـ `SUPER_ADMIN` فقط (`AccessTokenGuard` ثم `SuperAdminGuard`). حساب العميل يحصل على 403.
 
-| النقطة                                                                                     | الوظيفة                                                                                                        |
-| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `GET /api/admin/dashboard`                                                                 | ملخص اللوحة: العملاء والحسابات حسب الحالة، وآخر 5 عملاء، وإنفاق الشهر الحالي وأتعابه لكل عملة، والحملات النشطة |
-| `GET /api/admin/clients`                                                                   | القائمة: `search` و`status` و`page` و`pageSize`                                                                |
-| `POST /api/admin/clients`                                                                  | إضافة عميل                                                                                                     |
-| `GET /api/admin/clients/:id`                                                               | تفاصيل عميل                                                                                                    |
-| `PATCH /api/admin/clients/:id`                                                             | تعديل (مرفوض للعميل المؤرشف)                                                                                   |
-| `POST /api/admin/clients/:id/suspend`                                                      | إيقاف مؤقت                                                                                                     |
-| `POST /api/admin/clients/:id/archive`                                                      | أرشفة                                                                                                          |
-| `POST /api/admin/clients/:id/activate`                                                     | إعادة تفعيل                                                                                                    |
-| `GET /api/admin/campaigns`                                                                 | كل الحملات مع اسم العميل: `search` و`status` و`platform` و`page`                                               |
-| `GET /api/admin/clients/:id/campaigns`                                                     | حملات العميل: `status` و`platform` و`page` و`pageSize`                                                         |
-| `POST /api/admin/clients/:id/campaigns`                                                    | إضافة حملة Meta أو Google (مرفوض للعميل المؤرشف)                                                               |
-| `GET /api/admin/clients/:id/campaigns/:campaignId`                                         | تفاصيل حملة                                                                                                    |
-| `PATCH /api/admin/clients/:id/campaigns/:campaignId`                                       | تعديل (مرفوض للحملة المؤرشفة)                                                                                  |
-| `POST /api/admin/clients/:id/campaigns/:campaignId/pause` و`/activate` و`/end` و`/archive` | تغيير حالة الحملة                                                                                              |
-| `POST /api/admin/clients/:id/campaign-imports/preview`                                     | فحص ملف CSV (`platform` و`csv`): ما الجديد وما سيُصحَّح والأسطر الخاطئة، دون أي كتابة                             |
-| `POST /api/admin/clients/:id/campaign-imports/commit`                                      | حفظ كل الأسطر في معاملة واحدة، أو لا شيء (409 `import_has_errors`)                                             |
-| `GET /api/admin/clients/:id/fee-plans`                                                     | خطط أتعاب العميل كلها، مع حالتها (نشطة، مجدولة، منتهية، ملغاة)                                                 |
-| `POST /api/admin/clients/:id/fee-plans`                                                    | خطة جديدة: تُغلق الخطة المفتوحة، وتبدأ من الشهر القادم على الأقرب                                               |
-| `POST /api/admin/clients/:id/fee-plans/:planId/cancel`                                     | إلغاء خطة لم تبدأ بعد                                                                                          |
-| `GET /api/admin/clients/:id/fees`                                                          | أتعاب كل شهر (`from` و`to` بصيغة `YYYY-MM`)، مع تنبيهات العملات المختلفة                                       |
-| `GET /api/admin/invoices`                                                                  | الفواتير مع حالة الدفع: `status` و`clientId` و`page`                                                           |
-| `POST /api/admin/invoices/prepare`                                                         | تجهيز المسودات الناقصة وتحديث إنفاق المسودات                                                                   |
-| `GET /api/admin/invoices/:id`                                                              | الفاتورة ودفعاتها، وهل تغيّر الإنفاق بعد إصدارها                                                                |
-| `POST /api/admin/invoices/:id/issue`                                                       | إصدار: الرقم والتاريخ من PostgreSQL، و`dueOn` اختياري                                                          |
-| `POST /api/admin/invoices/:id/void`                                                        | إلغاء مع `reason` (مسودة، أو مُصدرة بلا دفعات فعّالة)                                                            |
-| `POST /api/admin/invoices/:id/payments`                                                    | تسجيل دفعة: `amount` و`paidOn` و`method` و`reference`                                                          |
-| `POST /api/admin/payments/:paymentId/void`                                                 | إلغاء دفعة مع `reason`                                                                                         |
-| `GET /api/admin/clients/:id/users`                                                         | حسابات دخول العميل                                                                                             |
-| `POST /api/admin/clients/:id/users`                                                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة                                                             |
-| `POST /api/admin/clients/:id/users/:userId/reset-password`                                 | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب                                                                   |
-| `POST /api/admin/clients/:id/users/:userId/suspend`                                        | إيقاف حساب واحد                                                                                                |
-| `POST /api/admin/clients/:id/users/:userId/activate`                                       | إعادة تفعيل حساب                                                                                               |
+| النقطة                                                                                     | الوظيفة                                                                                                                              |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/admin/dashboard`                                                                 | ملخص اللوحة: العملاء والحسابات، وآخر 5 عملاء، وإنفاق الشهر وأتعابه لكل عملة، والحملات النشطة، والفواتير المستحقة والمتأخرة والمسودات |
+| `GET /api/admin/clients`                                                                   | القائمة: `search` و`status` و`page` و`pageSize`                                                                                      |
+| `POST /api/admin/clients`                                                                  | إضافة عميل                                                                                                                           |
+| `GET /api/admin/clients/:id`                                                               | تفاصيل عميل                                                                                                                          |
+| `PATCH /api/admin/clients/:id`                                                             | تعديل (مرفوض للعميل المؤرشف)                                                                                                         |
+| `POST /api/admin/clients/:id/suspend`                                                      | إيقاف مؤقت                                                                                                                           |
+| `POST /api/admin/clients/:id/archive`                                                      | أرشفة                                                                                                                                |
+| `POST /api/admin/clients/:id/activate`                                                     | إعادة تفعيل                                                                                                                          |
+| `GET /api/admin/campaigns`                                                                 | كل الحملات مع اسم العميل: `search` و`status` و`platform` و`page`                                                                     |
+| `GET /api/admin/clients/:id/campaigns`                                                     | حملات العميل: `status` و`platform` و`page` و`pageSize`                                                                               |
+| `POST /api/admin/clients/:id/campaigns`                                                    | إضافة حملة Meta أو Google (مرفوض للعميل المؤرشف)                                                                                     |
+| `GET /api/admin/clients/:id/campaigns/:campaignId`                                         | تفاصيل حملة                                                                                                                          |
+| `PATCH /api/admin/clients/:id/campaigns/:campaignId`                                       | تعديل (مرفوض للحملة المؤرشفة)                                                                                                        |
+| `POST /api/admin/clients/:id/campaigns/:campaignId/pause` و`/activate` و`/end` و`/archive` | تغيير حالة الحملة                                                                                                                    |
+| `POST /api/admin/clients/:id/campaign-imports/preview`                                     | فحص ملف CSV (`platform` و`csv`): ما الجديد وما سيُصحَّح والأسطر الخاطئة، دون أي كتابة                                                   |
+| `POST /api/admin/clients/:id/campaign-imports/commit`                                      | حفظ كل الأسطر في معاملة واحدة، أو لا شيء (409 `import_has_errors`)                                                                   |
+| `GET /api/admin/clients/:id/fee-plans`                                                     | خطط أتعاب العميل كلها، مع حالتها (نشطة، مجدولة، منتهية، ملغاة)                                                                       |
+| `POST /api/admin/clients/:id/fee-plans`                                                    | خطة جديدة: تُغلق الخطة المفتوحة، وتبدأ من الشهر القادم على الأقرب                                                                     |
+| `POST /api/admin/clients/:id/fee-plans/:planId/cancel`                                     | إلغاء خطة لم تبدأ بعد                                                                                                                |
+| `GET /api/admin/clients/:id/fees`                                                          | أتعاب كل شهر (`from` و`to` بصيغة `YYYY-MM`)، مع تنبيهات العملات المختلفة                                                             |
+| `GET /api/admin/invoices`                                                                  | الفواتير مع حالة الدفع: `status` و`clientId` و`page`                                                                                 |
+| `POST /api/admin/invoices/prepare`                                                         | تجهيز المسودات الناقصة وتحديث إنفاق المسودات                                                                                         |
+| `GET /api/admin/invoices/:id`                                                              | الفاتورة ودفعاتها، وهل تغيّر الإنفاق بعد إصدارها                                                                                      |
+| `POST /api/admin/invoices/:id/issue`                                                       | إصدار: الرقم والتاريخ من PostgreSQL، و`dueOn` اختياري                                                                                |
+| `POST /api/admin/invoices/:id/void`                                                        | إلغاء مع `reason` (مسودة، أو مُصدرة بلا دفعات فعّالة)                                                                                  |
+| `POST /api/admin/invoices/:id/payments`                                                    | تسجيل دفعة: `amount` و`paidOn` و`method` و`reference`                                                                                |
+| `POST /api/admin/payments/:paymentId/void`                                                 | إلغاء دفعة مع `reason`                                                                                                               |
+| `GET /api/admin/clients/:id/users`                                                         | حسابات دخول العميل                                                                                                                   |
+| `POST /api/admin/clients/:id/users`                                                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة                                                                                   |
+| `POST /api/admin/clients/:id/users/:userId/reset-password`                                 | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب                                                                                         |
+| `POST /api/admin/clients/:id/users/:userId/suspend`                                        | إيقاف حساب واحد                                                                                                                      |
+| `POST /api/admin/clients/:id/users/:userId/activate`                                       | إعادة تفعيل حساب                                                                                                                     |
 
 ## بوابة العميل (`/api/client`)
 
@@ -228,7 +229,7 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (350 اختباراً)
+## الاختبارات الموجودة (351 اختباراً)
 
 | الملف                                                     | العدد       | ماذا يحمي                                                                                                               |
 | --------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -279,6 +280,7 @@ alaa-ad-manager/
 | `apps/api/src/invoices/invoices.database.db-spec.ts`      | 1 (58 فحصاً) | قواعد الفواتير والمدفوعات داخل PostgreSQL: المبالغ، والترقيم بلا فراغات، والحالات، والدفعات، ولا حذف                    |
 | `apps/api/src/invoices/invoices.service.db-spec.ts`       | 7           | المسودات، والإصدار، والترقيم، والدفعات الجزئية، والإلغاء، والفاتورة البديلة                                             |
 | `apps/api/src/invoices/invoices.http.db-spec.ts`          | 2           | عبر HTTP: 401 و403 على كل مسار، ورموز الأخطاء، ولا مسار للتعديل أو الحذف                                                |
+| `apps/web/src/lib/invoices-api.test.ts`                   | 1           | حالة الفاتورة المعروضة: مسودة، أو غير مدفوعة، أو جزئية، أو متأخرة، أو مدفوعة، أو ملغاة                                  |
 | `apps/web/src/i18n/locales.test.ts`                       | 3           | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                                               |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.

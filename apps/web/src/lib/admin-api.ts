@@ -127,6 +127,11 @@ export interface AdminDashboard {
     fees: { currency: string; amount: string; clients: number }[];
     activeClientsWithoutPlan: number;
   };
+  invoices: {
+    due: { currency: string; amount: string; count: number }[];
+    overdue: number;
+    drafts: number;
+  };
   generatedAt: string;
 }
 

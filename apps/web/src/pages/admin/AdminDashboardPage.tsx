@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useAuth } from '../../auth/auth-context';
-import { ComingCard, StatCard } from '../../components/DashboardCards';
+import { StatCard } from '../../components/DashboardCards';
 import { StatusBadge } from '../../components/StatusBadge';
 import { SystemStatus } from '../../components/SystemStatus';
 import { ui } from '../../components/ui';
@@ -59,6 +59,14 @@ export function AdminDashboardPage() {
           text: t('dashboard.attention.withoutPlan', {
             count: data.month.activeClientsWithoutPlan,
           }),
+        },
+        data.invoices.drafts > 0 && {
+          tone: 'gold',
+          text: t('dashboard.attention.drafts', { count: data.invoices.drafts }),
+        },
+        data.invoices.overdue > 0 && {
+          tone: 'danger',
+          text: t('dashboard.attention.overdue', { count: data.invoices.overdue }),
         },
         data.clients.SUSPENDED > 0 && {
           tone: 'danger',
@@ -148,7 +156,16 @@ export function AdminDashboardPage() {
               icon="payments"
               tone="gold"
             />
-            <ComingCard label={t('dashboard.dueInvoices')} phase={6} icon="invoices" />
+            <StatCard
+              label={t('dashboard.dueInvoices')}
+              value={perCurrency(data.invoices.due)}
+              note={
+                data.invoices.overdue > 0
+                  ? t('dashboard.overdueInvoices', { count: data.invoices.overdue })
+                  : t('dashboard.dueInvoicesNote')
+              }
+              icon="invoices"
+            />
             <StatCard
               label={t('dashboard.activeCampaigns')}
               value={data.month.activeCampaigns}

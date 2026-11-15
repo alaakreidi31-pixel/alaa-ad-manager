@@ -195,7 +195,12 @@
     "fee_plan_not_found": "Fee plan not found for this client.",
     "fee_plan_overlap": "This client already has a fee plan for these months.",
     "fee_plan_starts_too_early": "A change starts next month at the earliest; only the first plan may start in a past month.",
-    "fee_plan_cannot_cancel": "A plan that has started or is already cancelled cannot be cancelled."
+    "fee_plan_cannot_cancel": "A plan that has started or is already cancelled cannot be cancelled.",
+    "invoice_not_found": "Invoice not found.",
+    "payment_not_found": "Payment not found.",
+    "invoice_state": "This is not possible for the invoice in its current state.",
+    "invoice_has_payments": "An invoice with payments cannot be voided: void the payments first.",
+    "payment_exceeds_total": "The amount is more than what is left to pay."
   },
   "theme": {
     "toLight": "Light mode",
@@ -227,12 +232,16 @@
       "none": "Nothing needs your attention right now ✓",
       "pendingPassword": "Accounts not yet signed in with their temporary password: {{count}}",
       "suspendedClients": "Suspended clients: {{count}}",
-      "withoutPlan": "Active clients without a fee plan this month: {{count}}"
+      "withoutPlan": "Active clients without a fee plan this month: {{count}}",
+      "drafts": "Invoice drafts waiting for your review: {{count}}",
+      "overdue": "Overdue invoices: {{count}}"
     },
     "thisMonth": "This month, all clients",
     "feesNote": "This month, in progress",
     "withoutPlan": "Active clients without a plan: {{count}}",
-    "activeCampaignsNote": "All clients"
+    "activeCampaignsNote": "All clients",
+    "dueInvoicesNote": "Issued and not fully paid",
+    "overdueInvoices": "Overdue: {{count}}"
   },
   "campaigns": {
     "title": "Campaigns",
@@ -420,5 +429,74 @@
     },
     "cancelPlan": "Cancel",
     "confirmCancel": "Cancel this plan before it starts? It stays in the history as cancelled."
+  },
+  "invoices": {
+    "title": "Invoices",
+    "hint": "Opening this page prepares the drafts of the ended months for every client with a fee plan. Review a draft, then issue it.",
+    "allClients": "All clients",
+    "clientInvoices": "Client invoices",
+    "prepared": "{{created}} new drafts prepared, {{refreshed}} drafts refreshed.",
+    "filters": {
+      "ALL": "All",
+      "DRAFT": "Drafts",
+      "ISSUED": "Issued",
+      "VOID": "Void"
+    },
+    "number": "Number",
+    "client": "Client",
+    "month": "Month",
+    "total": "Amount",
+    "balance": "Balance",
+    "dueOn": "Due date",
+    "paid": "Paid",
+    "draftNumber": "Draft",
+    "empty": "No invoices.",
+    "labels": {
+      "draft": "Draft",
+      "unpaid": "Unpaid",
+      "partial": "Partly paid",
+      "overdue": "Overdue",
+      "paid": "Paid",
+      "void": "Void"
+    },
+    "issuedOn": "issued {{date}}",
+    "dueOnDate": "due {{date}}",
+    "voidedBecause": "Void invoice. Reason: {{reason}}",
+    "spendChanged": "The spend of this month changed after the invoice was issued: now {{current}}, invoiced on {{issued}}. To correct it, void the invoice (after voiding its payments, if any) and a new draft will be prepared.",
+    "details": "Invoice details",
+    "lines": {
+      "spend": "Ad spend of the month",
+      "fixedFee": "Fixed fee",
+      "variableFee": "Percentage of spend",
+      "minimumFee": "Minimum"
+    },
+    "issueTitle": "Review and issue",
+    "issueHint": "Once issued, the invoice gets the next number and cannot change: a correction is a void and a new invoice.",
+    "dueOnHint": "Leave empty for 14 days after the issue.",
+    "issue": "Issue invoice",
+    "confirmIssue": "Issue this invoice? It cannot be changed afterwards.",
+    "discard": "Discard draft",
+    "askDiscardReason": "Why is this draft discarded? (3 characters at least)",
+    "payments": "Payments",
+    "paidOn": "Payment date",
+    "amount": "Amount",
+    "method": "Method",
+    "reference": "Reference",
+    "methods": {
+      "BANK_TRANSFER": "Bank transfer",
+      "CASH": "Cash",
+      "CARD": "Card",
+      "OTHER": "Other"
+    },
+    "noPayments": "No payments yet.",
+    "paymentVoided": "Void: {{reason}}",
+    "voidPayment": "Void payment",
+    "askPaymentVoidReason": "Why is this payment voided? (3 characters at least)",
+    "recordPayment": "Record a payment",
+    "savePayment": "Save payment",
+    "void": "Void invoice",
+    "askVoidReason": "Why is this invoice voided? Its number stays in the history. (3 characters at least)",
+    "voidBlocked": "An invoice with payments cannot be voided: void the payments first.",
+    "voidHint": "A voided invoice keeps its number; its replacement gets a new one."
   }
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { useAuth } from '../auth/auth-context';
 import { ApiError, type FieldError } from '../lib/api-client';
 import {
@@ -145,6 +146,9 @@ export function ClientFees({
     <>
       <div className="mt-10 flex flex-wrap items-center gap-3">
         <h2 className="me-auto text-xl font-bold text-white">{t('fees.title')}</h2>
+        <Link to={`/admin/invoices?clientId=${clientId}`} className={ui.secondary}>
+          {t('invoices.clientInvoices')}
+        </Link>
         {!archived && !editing && (
           <button type="button" className={ui.primary} onClick={openForm}>
             {hasPlans ? t('fees.change') : t('fees.add')}

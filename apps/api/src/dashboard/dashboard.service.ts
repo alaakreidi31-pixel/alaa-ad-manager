@@ -27,6 +27,13 @@ export interface AdminDashboard {
     fees: { currency: string; amount: string; clients: number }[];
     activeClientsWithoutPlan: number;
   };
+  // Issued invoices not fully paid (one line per currency), overdue ones,
+  // and drafts waiting for review (ADR 0020).
+  invoices: {
+    due: { currency: string; amount: string; count: number }[];
+    overdue: number;
+    drafts: number;
+  };
   generatedAt: Date;
 }
 
@@ -79,6 +86,7 @@ export class DashboardService {
       accounts,
       recentClients,
       month: await this.currentMonth(),
+      invoices: await this.invoices(),
       generatedAt: new Date(),
     };
   }
@@ -142,6 +150,38 @@ export class DashboardService {
         clients: row.clients,
       })),
       activeClientsWithoutPlan: withoutPlan[0]?.total ?? 0,
+    };
+  }
+
+  private async invoices(): Promise<AdminDashboard['invoices']> {
+    const [due, counts] = await this.prisma.$transaction([
+      this.prisma.$queryRaw<{ currency: string; amount: string; count: number }[]>`
+        SELECT i.currency AS currency,
+               SUM(i.total_minor - COALESCE(p.paid, 0))::text AS amount,
+               count(*)::int AS count
+        FROM invoices i
+        LEFT JOIN LATERAL (
+          SELECT SUM(amount_minor) AS paid FROM payments
+          WHERE invoice_id = i.id AND voided_at IS NULL
+        ) p ON true
+        WHERE i.status = 'ISSUED' AND i.total_minor > COALESCE(p.paid, 0)
+        GROUP BY i.currency ORDER BY i.currency`,
+      this.prisma.$queryRaw<{ overdue: number; drafts: number }[]>`
+        SELECT
+          (SELECT count(*)::int FROM invoices i
+           WHERE i.status = 'ISSUED' AND i.due_on < (now() AT TIME ZONE 'UTC')::date
+             AND i.total_minor > COALESCE((SELECT SUM(amount_minor) FROM payments
+                                           WHERE invoice_id = i.id AND voided_at IS NULL), 0)) AS overdue,
+          (SELECT count(*)::int FROM invoices WHERE status = 'DRAFT') AS drafts`,
+    ]);
+    return {
+      due: due.map((row) => ({
+        currency: row.currency,
+        amount: fromMinor(BigInt(row.amount), row.currency),
+        count: row.count,
+      })),
+      overdue: counts[0]?.overdue ?? 0,
+      drafts: counts[0]?.drafts ?? 0,
     };
   }
 }
