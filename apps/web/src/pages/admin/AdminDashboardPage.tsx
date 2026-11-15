@@ -15,6 +15,11 @@ function greetingKey(hour: number): string {
   return 'dashboard.evening';
 }
 
+// One line per currency: amounts in different currencies are never added.
+function perCurrency(rows: { currency: string; amount: string }[]): string {
+  return rows.length === 0 ? '0' : rows.map((row) => `${row.amount} ${row.currency}`).join(' + ');
+}
+
 // The administration home page (step 3.2): real numbers from the API only.
 export function AdminDashboardPage() {
   const { t, i18n } = useTranslation();
@@ -47,6 +52,12 @@ export function AdminDashboardPage() {
           tone: 'gold',
           text: t('dashboard.attention.pendingPassword', {
             count: data.accounts.pendingPasswordChange,
+          }),
+        },
+        data.month.activeClientsWithoutPlan > 0 && {
+          tone: 'gold',
+          text: t('dashboard.attention.withoutPlan', {
+            count: data.month.activeClientsWithoutPlan,
           }),
         },
         data.clients.SUSPENDED > 0 && {
@@ -117,10 +128,35 @@ export function AdminDashboardPage() {
         aria-label={t('dashboard.money')}
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
-        <ComingCard label={t('dashboard.adSpend')} phase={4} icon="campaigns" />
-        <ComingCard label={t('dashboard.fees')} phase={5} icon="payments" />
-        <ComingCard label={t('dashboard.dueInvoices')} phase={6} icon="invoices" />
-        <ComingCard label={t('dashboard.activeCampaigns')} phase={4} icon="reports" />
+        {data ? (
+          <>
+            <StatCard
+              label={t('dashboard.adSpend')}
+              value={perCurrency(data.month.spend)}
+              note={t('dashboard.thisMonth')}
+              icon="campaigns"
+              tone="gold"
+            />
+            <StatCard
+              label={t('dashboard.fees')}
+              value={perCurrency(data.month.fees)}
+              note={
+                data.month.activeClientsWithoutPlan > 0
+                  ? t('dashboard.withoutPlan', { count: data.month.activeClientsWithoutPlan })
+                  : t('dashboard.feesNote')
+              }
+              icon="payments"
+              tone="gold"
+            />
+            <ComingCard label={t('dashboard.dueInvoices')} phase={6} icon="invoices" />
+            <StatCard
+              label={t('dashboard.activeCampaigns')}
+              value={data.month.activeCampaigns}
+              note={t('dashboard.activeCampaignsNote')}
+              icon="reports"
+            />
+          </>
+        ) : null}
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">

@@ -191,7 +191,11 @@
     "external_id_taken": "This client already has a campaign with this id on this platform.",
     "currency_locked": "The currency cannot change once daily numbers exist.",
     "future_day": "Numbers cannot be entered for a future day.",
-    "import_has_errors": "The file has lines with problems: nothing was saved."
+    "import_has_errors": "The file has lines with problems: nothing was saved.",
+    "fee_plan_not_found": "Fee plan not found for this client.",
+    "fee_plan_overlap": "This client already has a fee plan for these months.",
+    "fee_plan_starts_too_early": "A change starts next month at the earliest; only the first plan may start in a past month.",
+    "fee_plan_cannot_cancel": "A plan that has started or is already cancelled cannot be cancelled."
   },
   "theme": {
     "toLight": "Light mode",
@@ -222,8 +226,13 @@
       "title": "Needs your attention",
       "none": "Nothing needs your attention right now ✓",
       "pendingPassword": "Accounts not yet signed in with their temporary password: {{count}}",
-      "suspendedClients": "Suspended clients: {{count}}"
-    }
+      "suspendedClients": "Suspended clients: {{count}}",
+      "withoutPlan": "Active clients without a fee plan this month: {{count}}"
+    },
+    "thisMonth": "This month, all clients",
+    "feesNote": "This month, in progress",
+    "withoutPlan": "Active clients without a plan: {{count}}",
+    "activeCampaignsNote": "All clients"
   },
   "campaigns": {
     "title": "Campaigns",
@@ -359,5 +368,57 @@
     "title": "Your campaigns",
     "empty": "No campaigns yet.",
     "open": "View numbers →"
+  },
+  "fees": {
+    "title": "Agency fees",
+    "add": "Add a fee plan",
+    "change": "Change fees",
+    "noPlan": "This client has no fee plan yet.",
+    "current": "Current plan",
+    "since": "Since {{month}}",
+    "until": "until {{month}}",
+    "open": "ongoing",
+    "scheduled": "A new plan starts in {{month}}:",
+    "percentOfSpend": "{{percent}}% of spend",
+    "minimumOf": "minimum {{amount}}",
+    "changeHint": "The new plan starts next month at the earliest; the current month stays on the current plan, which closes automatically at its end.",
+    "firstHint": "A client's first plan may start in a past month, to compute fees of months already gone.",
+    "fields": {
+      "fixedFee": "Monthly fixed fee",
+      "percent": "Percentage of spend (%)",
+      "minimumFee": "Monthly minimum",
+      "currency": "Plan currency",
+      "startsOn": "Starts in month"
+    },
+    "percentHint": "e.g. 10 or 7.5. Fill the fixed fee, the percentage, or both.",
+    "minimumHint": "Applies to the total of fixed + percentage. Leave empty if not needed.",
+    "currencyHint": "Only spend of campaigns in this currency counts, never converted.",
+    "optional": "optional",
+    "save": "Save plan",
+    "cancelForm": "Close",
+    "immutableHint": "Once saved, the terms never change: a change is a new plan.",
+    "warningsTitle": "Spend not counted in the fees (currency differs from the plan):",
+    "warning": "{{client}}: {{amount}} in {{month}}",
+    "monthlyTitle": "Monthly fees",
+    "month": "Month",
+    "spend": "Spend",
+    "fixed": "Fixed",
+    "variable": "Percentage",
+    "fee": "Fee",
+    "notes": "Notes",
+    "noPlanMonth": "no plan",
+    "minimumApplied": "minimum applied",
+    "inProgress": "in progress",
+    "historyTitle": "Plan history",
+    "period": "Period",
+    "terms": "Terms",
+    "status": {
+      "active": "Active",
+      "scheduled": "Scheduled",
+      "ended": "Ended",
+      "cancelled": "Cancelled"
+    },
+    "cancelPlan": "Cancel",
+    "confirmCancel": "Cancel this plan before it starts? It stays in the history as cancelled."
   }
 }

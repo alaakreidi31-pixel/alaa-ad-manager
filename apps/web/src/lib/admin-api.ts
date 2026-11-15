@@ -119,6 +119,14 @@ export interface AdminDashboard {
   clients: Record<ClientStatus, number> & { total: number };
   accounts: { total: number; active: number; suspended: number; pendingPasswordChange: number };
   recentClients: { id: string; name: string; status: ClientStatus; createdAt: string }[];
+  // The current month, all clients; one line per currency (never added up).
+  month: {
+    month: string;
+    activeCampaigns: number;
+    spend: { currency: string; amount: string }[];
+    fees: { currency: string; amount: string; clients: number }[];
+    activeClientsWithoutPlan: number;
+  };
   generatedAt: string;
 }
 

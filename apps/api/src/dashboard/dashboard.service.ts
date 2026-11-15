@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ClientStatus } from '../generated/prisma/client';
+import { fromMinor } from '../money/money';
 import { PrismaService } from '../prisma/prisma.service';
 
 // The administration home page (step 3.2). REAL numbers only (ADR 0017):
@@ -15,6 +16,17 @@ export interface AdminDashboard {
     pendingPasswordChange: number;
   };
   recentClients: { id: string; name: string; status: ClientStatus; createdAt: Date }[];
+  // The current month (UTC), all clients. One line per currency: amounts
+  // in different currencies are never added together (ADR 0019).
+  month: {
+    month: string;
+    activeCampaigns: number;
+    spend: { currency: string; amount: string }[];
+    // Fees of the clients that have a plan this month (archived excluded),
+    // computed by PostgreSQL (monthly_fee_minor). Month in progress.
+    fees: { currency: string; amount: string; clients: number }[];
+    activeClientsWithoutPlan: number;
+  };
   generatedAt: Date;
 }
 
@@ -62,6 +74,74 @@ export class DashboardService {
       accounts.total += count;
     }
 
-    return { clients, accounts, recentClients, generatedAt: new Date() };
+    return {
+      clients,
+      accounts,
+      recentClients,
+      month: await this.currentMonth(),
+      generatedAt: new Date(),
+    };
+  }
+
+  private async currentMonth(): Promise<AdminDashboard['month']> {
+    const now = new Date();
+    const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+      .toISOString()
+      .slice(0, 10);
+    const last = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
+      .toISOString()
+      .slice(0, 10);
+
+    const [activeCampaigns, spendRows, feeRows, withoutPlan] = await this.prisma.$transaction([
+      this.prisma.campaign.count({
+        where: { status: 'ACTIVE', client: { status: { not: 'ARCHIVED' } } },
+      }),
+      this.prisma.$queryRaw<{ currency: string; amount: string }[]>`
+        SELECT c.currency AS currency, SUM(m.spend_minor)::text AS amount
+        FROM campaign_daily_metrics m
+        JOIN campaigns c ON c.id = m.campaign_id
+        WHERE m.date >= ${first}::date AND m.date <= ${last}::date
+        GROUP BY c.currency ORDER BY c.currency`,
+      this.prisma.$queryRaw<{ currency: string; amount: string; clients: number }[]>`
+        SELECT p.currency AS currency,
+               SUM(monthly_fee_minor(COALESCE(s.spend, 0), p.fixed_fee_minor,
+                                     p.percent_basis_points, p.minimum_fee_minor))::text AS amount,
+               count(*)::int AS clients
+        FROM fee_plans p
+        JOIN clients cl ON cl.id = p.client_id AND cl.status <> 'ARCHIVED'
+        LEFT JOIN LATERAL (
+          SELECT SUM(m.spend_minor) AS spend
+          FROM campaign_daily_metrics m
+          JOIN campaigns ca ON ca.id = m.campaign_id
+          WHERE ca.client_id = p.client_id AND ca.currency = p.currency
+            AND m.date >= ${first}::date AND m.date <= ${last}::date
+        ) s ON true
+        WHERE p.cancelled_at IS NULL
+          AND p.starts_on <= ${first}::date
+          AND (p.ends_on IS NULL OR p.ends_on >= ${last}::date)
+        GROUP BY p.currency ORDER BY p.currency`,
+      this.prisma.$queryRaw<{ total: number }[]>`
+        SELECT count(*)::int AS total FROM clients cl
+        WHERE cl.status = 'ACTIVE' AND NOT EXISTS (
+          SELECT 1 FROM fee_plans p
+          WHERE p.client_id = cl.id AND p.cancelled_at IS NULL
+            AND p.starts_on <= ${first}::date
+            AND (p.ends_on IS NULL OR p.ends_on >= ${last}::date))`,
+    ]);
+
+    return {
+      month: first.slice(0, 7),
+      activeCampaigns,
+      spend: spendRows.map((row) => ({
+        currency: row.currency,
+        amount: fromMinor(BigInt(row.amount), row.currency),
+      })),
+      fees: feeRows.map((row) => ({
+        currency: row.currency,
+        amount: fromMinor(BigInt(row.amount), row.currency),
+        clients: row.clients,
+      })),
+      activeClientsWithoutPlan: withoutPlan[0]?.total ?? 0,
+    };
   }
 }
