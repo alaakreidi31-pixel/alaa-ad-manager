@@ -23,6 +23,7 @@ import {
   CampaignDatesSchema,
   CampaignIdSchema,
   CreateCampaignSchema,
+  ListAllCampaignsQuerySchema,
   ListCampaignsQuerySchema,
   UpdateCampaignSchema,
 } from './campaigns.schemas';
@@ -48,6 +49,18 @@ export interface AdminCampaign {
 
 export interface CampaignPage {
   items: AdminCampaign[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// A row of the agency-wide list: the campaign and the name of its client.
+export interface CampaignWithClient extends AdminCampaign {
+  clientName: string;
+}
+
+export interface AllCampaignsPage {
+  items: CampaignWithClient[];
   total: number;
   page: number;
   pageSize: number;
@@ -143,6 +156,42 @@ export class CampaignsService {
       this.prisma.campaign.count({ where }),
     ]);
     return { items: rows.map(toAdminCampaign), total, page, pageSize };
+  }
+
+  // Every campaign of every client, newest first (administration only).
+  async listAll(query: unknown): Promise<AllCampaignsPage> {
+    const parsed = ListAllCampaignsQuerySchema.safeParse(query);
+    if (!parsed.success) throw new CampaignValidationError(parsed.error);
+    const { search, status, platform, page, pageSize } = parsed.data;
+
+    const where = {
+      ...(status ? { status } : {}),
+      ...(platform ? { platform } : {}),
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' as const } },
+              { client: { name: { contains: search, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
+    };
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.campaign.findMany({
+        where,
+        include: { client: { select: { name: true } } },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.campaign.count({ where }),
+    ]);
+    return {
+      items: rows.map((row) => ({ ...toAdminCampaign(row), clientName: row.client.name })),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async get(clientId: string, campaignId: string): Promise<AdminCampaign> {

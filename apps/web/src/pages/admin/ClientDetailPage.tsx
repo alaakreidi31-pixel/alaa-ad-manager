@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { useAuth } from '../../auth/auth-context';
+import { ClientCampaigns } from '../../components/ClientCampaigns';
 import { StatusBadge } from '../../components/StatusBadge';
 import { TemporaryPasswordDialog } from '../../components/TemporaryPasswordDialog';
 import { ui } from '../../components/ui';
@@ -190,6 +191,8 @@ export function ClientDetailPage() {
           <dd className="mt-1 whitespace-pre-wrap text-white">{client.internalNotes ?? '—'}</dd>
         </div>
       </dl>
+
+      <ClientCampaigns clientId={client.id} archived={archived} />
 
       <h2 className="mt-10 text-xl font-bold text-white">{t('clientUsers.title')}</h2>
       <p className="mt-1 text-sm text-ink-400">{t('clientUsers.subtitle')}</p>

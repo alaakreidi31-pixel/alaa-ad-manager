@@ -94,6 +94,11 @@ export const ListCampaignsQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+// All campaigns of the agency (the "Campaigns" page): search by campaign or client name.
+export const ListAllCampaignsQuerySchema = ListCampaignsQuerySchema.extend({
+  search: z.string().trim().max(100).optional(),
+});
+
 export const CampaignIdSchema = z.uuid();
 
 // The numbers of one day (step 4.2). Counts are whole numbers; conversions

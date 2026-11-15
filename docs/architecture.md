@@ -36,13 +36,16 @@
 
 ## صفحات الواجهة ([ADR 0015](decisions/0015-web-session-and-routing.md))
 
-| المسار                                          | الصفحة                                                                                                                                                        | الملف                                           |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `/login`                                        | الدخول: البريد وكلمة المرور، ثم رمز 2FA أو رمز احتياطي                                                                                                        | `apps/web/src/pages/LoginPage.tsx`              |
-| `/`                                             | الرئيسية حسب الدور: للإدارة لوحة بأرقام حقيقية (`pages/admin/AdminDashboardPage.tsx`)، وللعميل نظرة عامة على شركته وحسابه (`pages/client/ClientHomePage.tsx`) | `apps/web/src/pages/HomePage.tsx`               |
-| `/admin/clients`                                | قائمة العملاء: بحث، وفلتر الحالة، وصفحات (`SUPER_ADMIN` فقط)                                                                                                  | `apps/web/src/pages/admin/ClientsListPage.tsx`  |
-| `/admin/clients/new` و`/admin/clients/:id/edit` | إضافة عميل وتعديله                                                                                                                                            | `apps/web/src/pages/admin/ClientFormPage.tsx`   |
-| `/admin/clients/:id`                            | تفاصيل العميل، وحالته، وحسابات دخوله، وكلمة المرور المؤقتة (تظهر مرة واحدة)                                                                                   | `apps/web/src/pages/admin/ClientDetailPage.tsx` |
+| المسار                                                     | الصفحة                                                                                                                                                        | الملف                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `/login`                                                   | الدخول: البريد وكلمة المرور، ثم رمز 2FA أو رمز احتياطي                                                                                                        | `apps/web/src/pages/LoginPage.tsx`                |
+| `/`                                                        | الرئيسية حسب الدور: للإدارة لوحة بأرقام حقيقية (`pages/admin/AdminDashboardPage.tsx`)، وللعميل نظرة عامة على شركته وحسابه (`pages/client/ClientHomePage.tsx`) | `apps/web/src/pages/HomePage.tsx`                 |
+| `/admin/clients`                                           | قائمة العملاء: بحث، وفلتر الحالة، وصفحات (`SUPER_ADMIN` فقط)                                                                                                  | `apps/web/src/pages/admin/ClientsListPage.tsx`    |
+| `/admin/clients/new` و`/admin/clients/:id/edit`            | إضافة عميل وتعديله                                                                                                                                            | `apps/web/src/pages/admin/ClientFormPage.tsx`     |
+| `/admin/clients/:id`                                       | تفاصيل العميل، وحالته، وحسابات دخوله، وكلمة المرور المؤقتة (تظهر مرة واحدة)                                                                                   | `apps/web/src/pages/admin/ClientDetailPage.tsx`   |
+| `/admin/campaigns`                                         | كل الحملات: بحث باسم الحملة أو العميل، وفلتر المنصة والحالة                                                                                                   | `apps/web/src/pages/admin/CampaignsListPage.tsx`  |
+| `/admin/clients/:id/campaigns/new` و`.../:campaignId/edit` | إضافة حملة لعميل وتعديلها                                                                                                                                     | `apps/web/src/pages/admin/CampaignFormPage.tsx`   |
+| `/admin/clients/:id/campaigns/:campaignId`                 | الحملة وحالتها، والأرقام اليومية مع المجاميع، وإدخال يوم أو تصحيحه                                                                                            | `apps/web/src/pages/admin/CampaignDetailPage.tsx` |
 
 - الجلسة في `apps/web/src/auth/auth-context.tsx`: الـ Access Token في الذاكرة فقط، ويُجدَّد تلقائياً قبل انتهائه.
 - التنقل بمكتبة `react-router` الإصدار 7.
@@ -51,26 +54,27 @@
 
 كلها لـ `SUPER_ADMIN` فقط (`AccessTokenGuard` ثم `SuperAdminGuard`). حساب العميل يحصل على 403.
 
-| النقطة                                                                                     | الوظيفة                                                 |
-| ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| `GET /api/admin/dashboard`                                                                 | ملخص اللوحة: العملاء والحسابات حسب الحالة، وآخر 5 عملاء |
-| `GET /api/admin/clients`                                                                   | القائمة: `search` و`status` و`page` و`pageSize`         |
-| `POST /api/admin/clients`                                                                  | إضافة عميل                                              |
-| `GET /api/admin/clients/:id`                                                               | تفاصيل عميل                                             |
-| `PATCH /api/admin/clients/:id`                                                             | تعديل (مرفوض للعميل المؤرشف)                            |
-| `POST /api/admin/clients/:id/suspend`                                                      | إيقاف مؤقت                                              |
-| `POST /api/admin/clients/:id/archive`                                                      | أرشفة                                                   |
-| `POST /api/admin/clients/:id/activate`                                                     | إعادة تفعيل                                             |
-| `GET /api/admin/clients/:id/campaigns`                                                     | حملات العميل: `status` و`platform` و`page` و`pageSize`  |
-| `POST /api/admin/clients/:id/campaigns`                                                    | إضافة حملة Meta أو Google (مرفوض للعميل المؤرشف)        |
-| `GET /api/admin/clients/:id/campaigns/:campaignId`                                         | تفاصيل حملة                                             |
-| `PATCH /api/admin/clients/:id/campaigns/:campaignId`                                       | تعديل (مرفوض للحملة المؤرشفة)                           |
-| `POST /api/admin/clients/:id/campaigns/:campaignId/pause` و`/activate` و`/end` و`/archive` | تغيير حالة الحملة                                       |
-| `GET /api/admin/clients/:id/users`                                                         | حسابات دخول العميل                                      |
-| `POST /api/admin/clients/:id/users`                                                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة      |
-| `POST /api/admin/clients/:id/users/:userId/reset-password`                                 | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب            |
-| `POST /api/admin/clients/:id/users/:userId/suspend`                                        | إيقاف حساب واحد                                         |
-| `POST /api/admin/clients/:id/users/:userId/activate`                                       | إعادة تفعيل حساب                                        |
+| النقطة                                                                                     | الوظيفة                                                          |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `GET /api/admin/dashboard`                                                                 | ملخص اللوحة: العملاء والحسابات حسب الحالة، وآخر 5 عملاء          |
+| `GET /api/admin/clients`                                                                   | القائمة: `search` و`status` و`page` و`pageSize`                  |
+| `POST /api/admin/clients`                                                                  | إضافة عميل                                                       |
+| `GET /api/admin/clients/:id`                                                               | تفاصيل عميل                                                      |
+| `PATCH /api/admin/clients/:id`                                                             | تعديل (مرفوض للعميل المؤرشف)                                     |
+| `POST /api/admin/clients/:id/suspend`                                                      | إيقاف مؤقت                                                       |
+| `POST /api/admin/clients/:id/archive`                                                      | أرشفة                                                            |
+| `POST /api/admin/clients/:id/activate`                                                     | إعادة تفعيل                                                      |
+| `GET /api/admin/campaigns`                                                                 | كل الحملات مع اسم العميل: `search` و`status` و`platform` و`page` |
+| `GET /api/admin/clients/:id/campaigns`                                                     | حملات العميل: `status` و`platform` و`page` و`pageSize`           |
+| `POST /api/admin/clients/:id/campaigns`                                                    | إضافة حملة Meta أو Google (مرفوض للعميل المؤرشف)                 |
+| `GET /api/admin/clients/:id/campaigns/:campaignId`                                         | تفاصيل حملة                                                      |
+| `PATCH /api/admin/clients/:id/campaigns/:campaignId`                                       | تعديل (مرفوض للحملة المؤرشفة)                                    |
+| `POST /api/admin/clients/:id/campaigns/:campaignId/pause` و`/activate` و`/end` و`/archive` | تغيير حالة الحملة                                                |
+| `GET /api/admin/clients/:id/users`                                                         | حسابات دخول العميل                                               |
+| `POST /api/admin/clients/:id/users`                                                        | إضافة حساب: كلمة مرور مؤقتة تظهر في الرد مرة واحدة               |
+| `POST /api/admin/clients/:id/users/:userId/reset-password`                                 | كلمة مرور مؤقتة جديدة، وتُغلق كل جلسات الحساب                     |
+| `POST /api/admin/clients/:id/users/:userId/suspend`                                        | إيقاف حساب واحد                                                  |
+| `POST /api/admin/clients/:id/users/:userId/activate`                                       | إعادة تفعيل حساب                                                 |
 
 ## بوابة العميل (`/api/client`)
 
@@ -198,7 +202,7 @@ alaa-ad-manager/
 - صلاحياته قراءة فقط، ولا يحتاج أي أسرار.
 - **درس من أول تشغيل:** فشل ESLint على GitHub لأن كود Prisma المولَّد غير موجود على جهاز نظيف (فهو في `.gitignore`). لذلك أصبح `pnpm check` يشغّل `pnpm generate` قبل ESLint.
 
-## الاختبارات الموجودة (305 اختبارات)
+## الاختبارات الموجودة (308 اختبارات)
 
 | الملف                                                     | العدد | ماذا يحمي                                                                                   |
 | --------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- |
@@ -237,6 +241,7 @@ alaa-ad-manager/
 | `apps/api/src/campaigns/campaigns.http.db-spec.ts`        | 4     | عبر HTTP: 401 و403 على كل مسار، ورموز الأخطاء، وIDOR بين عميلين                             |
 | `apps/api/src/campaigns/campaign-metrics.db-spec.ts`      | 9     | الأرقام اليومية: يوم واحد لكل حملة (التصحيح لا يكرر)، والمجاميع الدقيقة، وقفل العملة، وIDOR |
 | `apps/api/src/campaigns/campaign-metrics.http.db-spec.ts` | 4     | عبر HTTP: 401 و403، والحفظ بـ PUT، ورموز الأخطاء، وIDOR                                     |
+| `apps/web/src/lib/campaigns-api.test.ts`                  | 2     | فترة آخر N يوماً، ونسب العرض (نسبة النقر، والتكلفة) بلا قسمة على صفر                         |
 | `apps/web/src/i18n/locales.test.ts`                       | 3     | ملفا الترجمة متطابقان في المفاتيح والمتغيرات، ولا نص فارغ                                   |
 
 على GitHub تعمل اختبارات القاعدة على PostgreSQL 17 مؤقت (service container) يُحذف بعد كل تشغيل.

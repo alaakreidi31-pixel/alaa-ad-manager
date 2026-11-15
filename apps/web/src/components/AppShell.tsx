@@ -19,7 +19,7 @@ interface NavItem {
 const ADMIN_NAV: NavItem[] = [
   { key: 'home', icon: 'home', to: '/', end: true },
   { key: 'clients', icon: 'clients', to: '/admin/clients' },
-  { key: 'campaigns', icon: 'campaigns' },
+  { key: 'campaigns', icon: 'campaigns', to: '/admin/campaigns' },
   { key: 'invoices', icon: 'invoices' },
   { key: 'payments', icon: 'payments' },
   { key: 'reports', icon: 'reports' },

@@ -3,6 +3,9 @@ import { Navigate, Route, Routes } from 'react-router';
 import { AuthProvider } from './auth/auth-context';
 import { GuestOnly, RequireAuth, RequireRole } from './auth/route-guards';
 import { AppShell } from './components/AppShell';
+import { CampaignDetailPage } from './pages/admin/CampaignDetailPage';
+import { CampaignFormPage } from './pages/admin/CampaignFormPage';
+import { CampaignsListPage } from './pages/admin/CampaignsListPage';
 import { ClientDetailPage } from './pages/admin/ClientDetailPage';
 import { ClientFormPage } from './pages/admin/ClientFormPage';
 import { ClientsListPage } from './pages/admin/ClientsListPage';
@@ -39,6 +42,16 @@ export function App() {
           <Route path="/admin/clients/new" element={admin(<ClientFormPage />)} />
           <Route path="/admin/clients/:id" element={admin(<ClientDetailPage />)} />
           <Route path="/admin/clients/:id/edit" element={admin(<ClientFormPage />)} />
+          <Route path="/admin/campaigns" element={admin(<CampaignsListPage />)} />
+          <Route path="/admin/clients/:id/campaigns/new" element={admin(<CampaignFormPage />)} />
+          <Route
+            path="/admin/clients/:id/campaigns/:campaignId"
+            element={admin(<CampaignDetailPage />)}
+          />
+          <Route
+            path="/admin/clients/:id/campaigns/:campaignId/edit"
+            element={admin(<CampaignFormPage />)}
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell>

@@ -121,4 +121,37 @@ describe('/api/admin/clients/:clientId/campaigns over HTTP (test database)', () 
     const still = await httpCall(server.baseUrl, 'GET', `${base()}/${id}`, adminToken);
     expect(still.body).toMatchObject({ name: 'Owned by A', status: 'ACTIVE' });
   });
+
+  it('GET /api/admin/campaigns lists every client, with the client name, for the admin only', async () => {
+    const name = `Agency wide ${randomUUID()}`;
+    await httpCall(server.baseUrl, 'POST', base(), adminToken, { platform: 'META', name });
+
+    expect((await httpCall(server.baseUrl, 'GET', '/admin/campaigns')).status).toBe(401);
+    expect((await httpCall(server.baseUrl, 'GET', '/admin/campaigns', clientToken)).status).toBe(
+      403,
+    );
+
+    const found = await httpCall(
+      server.baseUrl,
+      'GET',
+      `/admin/campaigns?search=${encodeURIComponent(name)}`,
+      adminToken,
+    );
+    expect(found.status).toBe(200);
+    expect(found.body['total']).toBe(1);
+    const [item] = found.body['items'] as { name: string; clientId: string; clientName: string }[];
+    expect(item).toMatchObject({ name, clientId });
+    expect(item?.clientName).toMatch(/^Http campaigns /);
+    // Searching by the client name finds its campaigns too
+    const byClient = await httpCall(
+      server.baseUrl,
+      'GET',
+      `/admin/campaigns?search=${encodeURIComponent(item?.clientName ?? '')}`,
+      adminToken,
+    );
+    expect(byClient.body['total']).toBeGreaterThan(1);
+    expect(
+      (await httpCall(server.baseUrl, 'GET', '/admin/campaigns?status=BAD', adminToken)).status,
+    ).toBe(400);
+  });
 });

@@ -99,5 +99,5 @@ describe('rollback of every migration (test database only)', () => {
     } finally {
       await app.$disconnect();
     }
-  }, 180_000);
+  }, 600_000); // Windows: each "prisma db execute" takes several seconds
 });

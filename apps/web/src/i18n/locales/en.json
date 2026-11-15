@@ -183,7 +183,12 @@
     "conflict": "The action conflicts with the current data. Refresh the page.",
     "invalid_session": "Your session has ended. Please sign in again.",
     "too_many_requests": "Too many requests. Wait a minute and try again.",
-    "server_unreachable": "Cannot reach the server. Please try again shortly."
+    "server_unreachable": "Cannot reach the server. Please try again shortly.",
+    "campaign_not_found": "Campaign not found for this client.",
+    "campaign_archived": "The campaign is archived and cannot be changed.",
+    "external_id_taken": "This client already has a campaign with this id on this platform.",
+    "currency_locked": "The currency cannot change once daily numbers exist.",
+    "future_day": "Numbers cannot be entered for a future day."
   },
   "theme": {
     "toLight": "Light mode",
@@ -215,6 +220,83 @@
       "none": "Nothing needs your attention right now ✓",
       "pendingPassword": "Accounts not yet signed in with their temporary password: {{count}}",
       "suspendedClients": "Suspended clients: {{count}}"
+    }
+  },
+  "campaigns": {
+    "title": "Campaigns",
+    "add": "Add campaign",
+    "addTitle": "New campaign",
+    "editTitle": "Edit campaign",
+    "listHint": "Every client campaign. A campaign is added from its client's page.",
+    "searchPlaceholder": "Search by campaign or client name",
+    "allPlatforms": "All platforms",
+    "client": "Client",
+    "empty": "No campaigns yet.",
+    "emptyClient": "This client has no campaigns yet.",
+    "total": "Total: {{total}} campaigns",
+    "perDay": "day",
+    "noDetails": "No extra details.",
+    "archivedReadOnly": "This campaign (or its client) is archived: read only.",
+    "platformLocked": "The platform cannot change after creation.",
+    "externalIdHint": "The campaign id on Meta or Google (optional). Used later to import CSV files.",
+    "objectiveHint": "e.g. Messages, Sales, Traffic.",
+    "currencyHint": "The ad account currency. Locked after the first day of numbers.",
+    "dailyBudgetHint": "e.g. 150 or 150.50",
+    "nameRequiredHint": "Type the campaign name first to enable saving.",
+    "fields": {
+      "platform": "Platform",
+      "name": "Campaign name",
+      "externalId": "Platform campaign id",
+      "objective": "Objective",
+      "currency": "Currency",
+      "dailyBudget": "Daily budget",
+      "startDate": "Start date",
+      "endDate": "End date"
+    },
+    "errors": {
+      "dailyBudget": "Invalid amount for this currency.",
+      "endDate": "The end date is before the start date.",
+      "externalId": "Invalid id."
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "PAUSED": "Paused",
+      "ENDED": "Ended",
+      "ARCHIVED": "Archived"
+    },
+    "actions": {
+      "pause": "Pause",
+      "activate": "Activate",
+      "end": "End",
+      "archive": "Archive"
+    },
+    "confirm": {
+      "pause": "Pause this campaign?",
+      "end": "End this campaign? Its numbers stay in the reports.",
+      "archive": "Archive this campaign? It becomes read only."
+    },
+    "metrics": {
+      "title": "Daily numbers",
+      "from": "From",
+      "to": "To",
+      "date": "Day",
+      "spend": "Spend",
+      "impressions": "Impressions",
+      "clicks": "Clicks",
+      "conversions": "Conversions",
+      "ctr": "CTR",
+      "cpa": "Cost per conversion",
+      "source": "Source",
+      "sources": {
+        "MANUAL": "Manual",
+        "CSV": "CSV file"
+      },
+      "empty": "No numbers in this period.",
+      "clickToCorrect": "Click to correct this day",
+      "enterTitle": "Enter a day",
+      "enterHint": "If the day already has numbers, they are replaced, never duplicated. Click any day in the table to correct it.",
+      "save": "Save day",
+      "saved": "The day was saved ✓"
     }
   }
 }
