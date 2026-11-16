@@ -57,14 +57,15 @@ export const PerformanceQuerySchema = z
     return { ...value, from, to };
   });
 
-// Agency finance: whole months, at most 36.
+// Agency finance: whole months, at most 36 (default: the last 13 months).
+// Date.UTC months start at 0, so the month index of "end" is endMonth - 1.
 export const FinanceQuerySchema = z
   .object({ from: month.optional(), to: month.optional() })
   .transform(({ from, to }, ctx) => {
     const now = new Date();
     const end = to ?? `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
     const [endYear = 0, endMonth = 1] = end.split('-').map(Number);
-    const start = from ?? new Date(Date.UTC(endYear, endMonth - 12, 1)).toISOString().slice(0, 7);
+    const start = from ?? new Date(Date.UTC(endYear, endMonth - 13, 1)).toISOString().slice(0, 7);
     const [startYear = 0, startMonth = 1] = start.split('-').map(Number);
     const count = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
     if (count < 1 || count > 36) {
