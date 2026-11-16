@@ -10,6 +10,7 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ReportsModule } from './reports/reports.module';
 import { TasksModule } from './tasks/tasks.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 // Root module: every feature module of the API is registered here.
 @Module({
@@ -25,6 +26,7 @@ import { TasksModule } from './tasks/tasks.module';
     InvoicesModule,
     ReportsModule,
     TasksModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

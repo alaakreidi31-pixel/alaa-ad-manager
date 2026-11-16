@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { auditRow } from '../audit/audit';
+import { notifyClient } from '../notifications/notify';
 import type { Actor } from '../clients/clients.service';
 import type { Invoice, InvoiceStatus, Payment, PaymentMethod } from '../generated/prisma/client';
 import { fromMinor, MoneyFormatError, toMinor } from '../money/money';
@@ -317,6 +318,17 @@ export class InvoicesService {
             },
           }),
         });
+        // The client sees the new invoice in its portal.
+        await notifyClient(tx, issued.clientId, {
+          kind: 'invoice.issued',
+          params: {
+            number: issued.number,
+            total: fromMinor(issued.totalMinor, issued.currency),
+            currency: issued.currency,
+            dueOn: issued.dueOn ? day(issued.dueOn) : null,
+          },
+          link: `/invoices/${issued.id}`,
+        });
         return toView(issued);
       });
     } catch (error) {
@@ -404,6 +416,16 @@ export class InvoicesService {
               method: parsed.data.method,
             },
           }),
+        });
+        await notifyClient(tx, invoice.clientId, {
+          kind: 'invoice.payment_recorded',
+          params: {
+            number: invoice.number,
+            amount: fromMinor(amountMinor, invoice.currency),
+            currency: invoice.currency,
+            paidOn: parsed.data.paidOn,
+          },
+          link: `/invoices/${invoice.id}`,
         });
       });
     } catch (error) {

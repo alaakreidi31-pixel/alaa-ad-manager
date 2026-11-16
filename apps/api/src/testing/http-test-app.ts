@@ -41,6 +41,8 @@ import { AdminReportsController, ClientReportsController } from '../reports/repo
 import { ReportsService } from '../reports/reports.service';
 import { ClientTasksController, TasksController } from '../tasks/tasks.controller';
 import { TasksService } from '../tasks/tasks.service';
+import { NotificationsController } from '../notifications/notifications.controller';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface HttpTestApp {
   app: INestApplication;
@@ -80,6 +82,7 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       ClientReportsController,
       TasksController,
       ClientTasksController,
+      NotificationsController,
     ],
     providers: [
       { provide: PrismaService, useValue: db },
@@ -100,6 +103,7 @@ export async function startHttpTestApp(prisma: PrismaClient): Promise<HttpTestAp
       { provide: InvoicesService, useValue: new InvoicesService(db) },
       { provide: ReportsService, useValue: new ReportsService(db) },
       { provide: TasksService, useValue: new TasksService(db) },
+      { provide: NotificationsService, useValue: new NotificationsService(db) },
       AccessTokenGuard,
       SuperAdminGuard,
       ClientUserGuard,

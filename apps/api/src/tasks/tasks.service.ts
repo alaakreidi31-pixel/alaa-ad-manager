@@ -18,7 +18,8 @@ import {
   UpdateRecurrenceSchema,
   UpdateTaskSchema,
 } from './tasks.schemas';
-import { syncTasks } from './tasks.sync';
+import { syncAll } from './tasks.sync';
+import { notifyClient } from '../notifications/notify';
 
 type Status = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
 type Priority = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -168,22 +169,10 @@ function checkId(id: string, error: Error): void {
 export class TasksService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  // Creates the due recurring and system tasks, closes the solved ones.
-  async sync(actor: Actor | null) {
-    return this.prisma.$transaction(async (tx) => {
-      const result = await syncTasks(tx);
-      if (result.recurring + result.system + result.closed > 0) {
-        await tx.auditLog.create({
-          data: auditRow({
-            ...(actor ?? {}),
-            action: 'system.tasks.synced',
-            userId: actor?.userId ?? null,
-            metadata: { ...result },
-          }),
-        });
-      }
-      return result;
-    });
+  // Creates the due recurring and system tasks, closes the solved ones,
+  // and writes the notifications they lead to.
+  sync(actor: Actor | null) {
+    return syncAll(this.prisma, actor);
   }
 
   async list(query: unknown, actor: Actor) {
@@ -286,6 +275,14 @@ export class TasksService {
             },
           }),
         });
+        if (row.visibleToClient && row.clientId) {
+          await notifyClient(tx, row.clientId, {
+            kind: 'task.shared',
+            params: { title: row.title },
+            link: '/tasks',
+            dedupeKey: `task-shared:${row.id}`,
+          });
+        }
         return toView(row);
       });
     } catch (error) {
@@ -337,6 +334,23 @@ export class TasksService {
         }
         // The text of a description is not copied into the log.
         if (before.description !== row.description) changes['descriptionChanged'] = true;
+        // The client hears about its shared tasks: newly shared, or a new status.
+        if (row.visibleToClient && row.clientId) {
+          if (!before.visibleToClient || before.clientId !== row.clientId) {
+            await notifyClient(tx, row.clientId, {
+              kind: 'task.shared',
+              params: { title: row.title },
+              link: '/tasks',
+              dedupeKey: `task-shared:${row.id}`,
+            });
+          } else if (before.status !== row.status && row.status !== 'CANCELLED') {
+            await notifyClient(tx, row.clientId, {
+              kind: 'task.status_changed',
+              params: { title: row.title, status: row.status },
+              link: '/tasks',
+            });
+          }
+        }
         await tx.auditLog.create({
           data: auditRow({
             ...actor,

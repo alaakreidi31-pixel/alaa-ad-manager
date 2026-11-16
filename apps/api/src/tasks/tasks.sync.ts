@@ -1,4 +1,6 @@
-import type { Prisma } from '../generated/prisma/client';
+import { auditRow, type AuditContext } from '../audit/audit';
+import type { Prisma, PrismaClient } from '../generated/prisma/client';
+import { syncNotifications } from '../notifications/notifications.sync';
 
 // Tasks made by the application itself (step 8.2, ADR 0022). There is no
 // background scheduler yet: the sync runs when the administration opens the
@@ -95,4 +97,30 @@ export async function syncTasks(tx: Prisma.TransactionClient): Promise<SyncResul
     )`);
 
   return { recurring, system: reviews + overdue + stale, closed };
+}
+
+type SyncDb = Pick<PrismaClient, '$transaction'>;
+
+// Tasks, then the notifications they lead to, in one transaction; audited
+// when anything was created or closed. Called when the administration opens
+// the tasks or the dashboard, and when anyone opens their notifications.
+export async function syncAll(
+  db: SyncDb,
+  actor: (AuditContext & { userId: string }) | null,
+): Promise<SyncResult & { notifications: number }> {
+  return db.$transaction(async (tx) => {
+    const tasks = await syncTasks(tx);
+    const notifications = await syncNotifications(tx);
+    if (tasks.recurring + tasks.system + tasks.closed + notifications > 0) {
+      await tx.auditLog.create({
+        data: auditRow({
+          ...(actor ?? {}),
+          action: 'system.tasks.synced',
+          userId: actor?.userId ?? null,
+          metadata: { ...tasks, notifications },
+        }),
+      });
+    }
+    return { ...tasks, notifications };
+  });
 }

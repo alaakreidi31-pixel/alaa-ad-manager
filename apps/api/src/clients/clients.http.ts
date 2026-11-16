@@ -40,6 +40,7 @@ import {
   TaskRecurrenceNotFoundError,
   TaskValidationError,
 } from '../tasks/tasks.errors';
+import { NotificationNotFoundError } from '../notifications/notifications.service';
 import type { Actor } from './clients.service';
 
 const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] = [
@@ -63,6 +64,7 @@ const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] 
   [InvoiceNotFoundError, HttpStatus.NOT_FOUND, 'invoice_not_found'],
   [PaymentNotFoundError, HttpStatus.NOT_FOUND, 'payment_not_found'],
   [TaskNotFoundError, HttpStatus.NOT_FOUND, 'task_not_found'],
+  [NotificationNotFoundError, HttpStatus.NOT_FOUND, 'notification_not_found'],
   [TaskRecurrenceNotFoundError, HttpStatus.NOT_FOUND, 'task_recurrence_not_found'],
   [InvoiceStateError, HttpStatus.CONFLICT, 'invoice_state'],
   [InvoiceHasPaymentsError, HttpStatus.CONFLICT, 'invoice_has_payments'],

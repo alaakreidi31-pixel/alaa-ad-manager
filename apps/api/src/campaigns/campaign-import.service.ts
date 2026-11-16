@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { auditRow } from '../audit/audit';
+import { notifyAdmins } from '../notifications/notify';
 import { ClientArchivedError, ClientNotFoundError } from '../clients/clients.errors';
 import { ClientIdSchema } from '../clients/clients.schemas';
 import type { Actor } from '../clients/clients.service';
@@ -96,6 +97,20 @@ export class CampaignImportService {
               campaigns: preview.summary.campaigns,
             },
           }),
+        });
+        const client = await tx.client.findUnique({
+          where: { id: clientId },
+          select: { name: true },
+        });
+        await notifyAdmins(tx, {
+          kind: 'campaign.import_done',
+          params: {
+            client: client?.name ?? null,
+            platform: preview.platform,
+            newDays: preview.summary.newDays,
+            corrections: preview.summary.corrections,
+          },
+          link: `/admin/clients/${clientId}`,
         });
         return preview;
       },

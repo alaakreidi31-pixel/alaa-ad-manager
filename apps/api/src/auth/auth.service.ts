@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'node:crypto';
 import type { AuditContext } from '../audit/audit';
 import { AuditService } from '../audit/audit.service';
+import { deviceName, notifyAdmins, notifyUser } from '../notifications/notify';
 import type { UserRole } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeEmail } from '../users/email';
@@ -100,6 +101,8 @@ export class AuthService {
   // Used when the email does not exist, so the response takes about the same
   // time as a wrong password (prevents discovering emails by timing).
   private dummyHash: Promise<string> | undefined;
+
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -213,6 +216,7 @@ export class AuthService {
 
     await this.resetFailedLogins(user);
     const tokens = await this.startSession(user, ctx);
+    await this.notifyNewDevice(user.id, ctx);
     await this.audit.record({
       ...ctx,
       action: 'auth.login.succeeded',
@@ -337,6 +341,7 @@ export class AuthService {
 
     await this.resetFailedLogins(user);
     const tokens = await this.startSession(user, ctx);
+    await this.notifyNewDevice(user.id, ctx);
     await this.audit.record({
       ...ctx,
       action: 'auth.login.succeeded',
@@ -412,7 +417,52 @@ export class AuthService {
       userId,
       metadata: { minutes: LOCKOUT_DURATION_MS / 60_000 },
     });
+    await this.notifyLocked(userId);
     return true;
+  }
+
+  // Security notifications (phase 9, ADR 0023). Like the audit log, a
+  // failure here never breaks the login itself.
+
+  // A successful login from a browser this account never used before. The
+  // very first login of an account is not "new".
+  private async notifyNewDevice(userId: string, ctx: AuditContext): Promise<void> {
+    try {
+      const userAgent = ctx.userAgent?.slice(0, 512);
+      if (!userAgent) return;
+      const previous = await this.prisma.auditLog.findMany({
+        where: { userId, action: 'auth.login.succeeded' },
+        select: { userAgent: true },
+        distinct: ['userAgent'],
+        take: 200,
+      });
+      if (previous.length === 0 || previous.some((row) => row.userAgent === userAgent)) return;
+      await notifyUser(this.prisma, userId, {
+        kind: 'security.new_device',
+        params: { device: deviceName(userAgent), ip: ctx.ip ?? null },
+        link: null,
+      });
+    } catch {
+      this.logger.error('Could not write the new device notification');
+    }
+  }
+
+  // The administration hears about every locked account.
+  private async notifyLocked(userId: string): Promise<void> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, clientId: true },
+      });
+      if (!user) return;
+      await notifyAdmins(this.prisma, {
+        kind: 'security.account_locked',
+        params: { email: user.email, minutes: LOCKOUT_DURATION_MS / 60_000 },
+        link: user.clientId ? `/admin/clients/${user.clientId}` : null,
+      });
+    } catch {
+      this.logger.error('Could not write the account locked notification');
+    }
   }
 
   // Rotation: every refresh token works once. Using an old one again means it

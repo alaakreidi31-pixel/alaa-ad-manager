@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { auditRow } from '../audit/audit';
+import { notifyClient } from '../notifications/notify';
 import { ClientArchivedError, ClientNotFoundError } from '../clients/clients.errors';
 import { ClientIdSchema } from '../clients/clients.schemas';
 import type { Actor } from '../clients/clients.service';
@@ -340,6 +341,14 @@ export class CampaignsService {
           metadata: { clientId, campaignId: campaign.id, from: current.status, to: transition.to },
         }),
       });
+      // Archived campaigns are hidden from the client portal: no notification.
+      if (transition.to !== 'ARCHIVED') {
+        await notifyClient(tx, clientId, {
+          kind: 'campaign.status_changed',
+          params: { name: campaign.name, status: transition.to },
+          link: `/campaigns/${campaign.id}`,
+        });
+      }
       return toAdminCampaign(campaign);
     });
   }
