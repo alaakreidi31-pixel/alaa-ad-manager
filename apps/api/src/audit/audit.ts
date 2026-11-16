@@ -49,6 +49,16 @@ export type AuditAction =
   | 'admin.invoice.voided'
   | 'admin.payment.recorded'
   | 'admin.payment.voided'
+  // Tasks (ADR 0022): metadata.taskId; before/after of the changed fields.
+  // Comment text and descriptions are never copied into the log.
+  | 'admin.task.created'
+  | 'admin.task.updated'
+  | 'admin.task.status_changed'
+  | 'admin.task.comment_added'
+  | 'admin.task_recurrence.created'
+  | 'admin.task_recurrence.updated'
+  // Recurring and system tasks were created or closed (counts in metadata).
+  | 'system.tasks.synced'
   // Correct temporary password: the user must now choose a new one.
   | 'auth.login.password_change_required'
   | 'auth.password.changed';

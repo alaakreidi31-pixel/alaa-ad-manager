@@ -35,6 +35,11 @@ import {
   PaymentNotFoundError,
 } from '../invoices/invoices.errors';
 import { ReportValidationError } from '../reports/reports.service';
+import {
+  TaskNotFoundError,
+  TaskRecurrenceNotFoundError,
+  TaskValidationError,
+} from '../tasks/tasks.errors';
 import type { Actor } from './clients.service';
 
 const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] = [
@@ -57,6 +62,8 @@ const MAPPING: [abstract new (...args: never[]) => Error, HttpStatus, string][] 
   [FeePlanCannotCancelError, HttpStatus.CONFLICT, 'fee_plan_cannot_cancel'],
   [InvoiceNotFoundError, HttpStatus.NOT_FOUND, 'invoice_not_found'],
   [PaymentNotFoundError, HttpStatus.NOT_FOUND, 'payment_not_found'],
+  [TaskNotFoundError, HttpStatus.NOT_FOUND, 'task_not_found'],
+  [TaskRecurrenceNotFoundError, HttpStatus.NOT_FOUND, 'task_recurrence_not_found'],
   [InvoiceStateError, HttpStatus.CONFLICT, 'invoice_state'],
   [InvoiceHasPaymentsError, HttpStatus.CONFLICT, 'invoice_has_payments'],
   [PaymentExceedsTotalError, HttpStatus.CONFLICT, 'payment_exceeds_total'],
@@ -69,7 +76,8 @@ export function toHttpError(error: unknown): Error {
     error instanceof CampaignValidationError ||
     error instanceof FeePlanValidationError ||
     error instanceof InvoiceValidationError ||
-    error instanceof ReportValidationError
+    error instanceof ReportValidationError ||
+    error instanceof TaskValidationError
   ) {
     return new HttpException(
       { statusCode: 400, message: error.message, code: 'invalid_input', fields: error.fields },
