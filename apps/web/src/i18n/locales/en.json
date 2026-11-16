@@ -201,7 +201,9 @@
     "payment_not_found": "Payment not found.",
     "invoice_state": "This is not possible for the invoice in its current state.",
     "invoice_has_payments": "An invoice with payments cannot be voided: void the payments first.",
-    "payment_exceeds_total": "The amount is more than what is left to pay."
+    "payment_exceeds_total": "The amount is more than what is left to pay.",
+    "task_not_found": "Task not found.",
+    "task_recurrence_not_found": "Recurring rule not found."
   },
   "theme": {
     "toLight": "Light mode",
@@ -235,14 +237,17 @@
       "suspendedClients": "Suspended clients: {{count}}",
       "withoutPlan": "Active clients without a fee plan this month: {{count}}",
       "drafts": "Invoice drafts waiting for your review: {{count}}",
-      "overdue": "Overdue invoices: {{count}}"
+      "overdue": "Overdue invoices: {{count}}",
+      "overdueTasks": "{{count}} overdue tasks"
     },
     "thisMonth": "This month, all clients",
     "feesNote": "This month, in progress",
     "withoutPlan": "Active clients without a plan: {{count}}",
     "activeCampaignsNote": "All clients",
     "dueInvoicesNote": "Issued and not fully paid",
-    "overdueInvoices": "Overdue: {{count}}"
+    "overdueInvoices": "Overdue: {{count}}",
+    "openTasks": "Open tasks",
+    "openTasksNote": "{{inProgress}} in progress · {{overdue}} overdue"
   },
   "campaigns": {
     "title": "Campaigns",
@@ -558,5 +563,111 @@
     "overdue": "Overdue invoices",
     "invoicedVsCollected": "Invoiced vs collected — {{currency}}",
     "emptyFinance": "No issued invoices yet."
+  },
+  "tasks": {
+    "title": "Tasks",
+    "clientTitle": "My tasks with the agency",
+    "clientHint": "The tasks the agency shares with you, and their status.",
+    "clientEmpty": "No shared tasks at the moment.",
+    "add": "New task",
+    "create": "Create task",
+    "closeForm": "Close",
+    "view": "View",
+    "views": {
+      "list": "List",
+      "board": "Board"
+    },
+    "filters": {
+      "open": "Open",
+      "all": "All",
+      "source": "Source"
+    },
+    "status": {
+      "TODO": "To do",
+      "IN_PROGRESS": "In progress",
+      "DONE": "Done",
+      "CANCELLED": "Cancelled"
+    },
+    "setStatus": {
+      "TODO": "Back to “To do”",
+      "IN_PROGRESS": "Start",
+      "DONE": "Mark as done",
+      "CANCELLED": "Cancel task"
+    },
+    "priority": {
+      "HIGH": "High",
+      "MEDIUM": "Medium",
+      "LOW": "Low"
+    },
+    "source": {
+      "MANUAL": "Manual",
+      "RECURRING": "Recurring",
+      "SYSTEM": "From the system"
+    },
+    "due": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "week": "Next 7 days",
+      "none": "No date"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "priority": "Priority",
+      "dueOn": "Due date",
+      "client": "Client",
+      "campaign": "Campaign",
+      "visibleToClient": "Visible to the client"
+    },
+    "errors": {
+      "title": "A title is required (200 characters at most).",
+      "clientId": "Unknown client.",
+      "campaignId": "The campaign does not belong to this client.",
+      "visibleToClient": "Only a task of a client can be shared.",
+      "day": "Choose a valid day for this frequency.",
+      "endsOn": "The end is before the start."
+    },
+    "noClient": "No client (general task)",
+    "noCampaign": "No campaign",
+    "visibleHint": "Shown read-only in the client portal. Comments stay internal.",
+    "overdue": "Overdue",
+    "overdueBanner": "You have {{count}} overdue tasks — click to see them.",
+    "shared": "Visible to the client",
+    "commentsCount": "{{count}} comments",
+    "empty": "No matching tasks.",
+    "emptyColumn": "Nothing here.",
+    "moveTo": "→ {{status}}",
+    "searchPlaceholder": "Search titles",
+    "createdBy": "Created by",
+    "bySystem": "The system",
+    "completedAt": "Completed",
+    "comments": "Internal comments",
+    "commentsHint": "Never shown to the client; never edited or deleted.",
+    "noComments": "No comments yet.",
+    "commentPlaceholder": "Write an internal note…",
+    "addComment": "Add comment",
+    "dueOnDate": "Due: {{date}}",
+    "recurring": {
+      "title": "Recurring tasks",
+      "hint": "Rules that create a task every week or month. Changes apply to the next occurrences; a rule is paused, never deleted.",
+      "add": "New rule",
+      "create": "Create rule",
+      "frequency": "Frequency",
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly",
+      "day": "Day",
+      "dueAfterDays": "Due after (days)",
+      "startsOn": "Starts on",
+      "endsOn": "Ends on (optional)",
+      "empty": "No recurring rules yet.",
+      "paused": "Paused",
+      "pause": "Pause",
+      "resume": "Resume",
+      "everyWeek": "Every {{day}}",
+      "everyMonth": "Day {{day}} of every month",
+      "dueAfter": "due after {{count}} days",
+      "from": "from {{date}}",
+      "until": "until {{date}}"
+    }
   }
 }

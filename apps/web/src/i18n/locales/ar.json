@@ -201,7 +201,9 @@
     "payment_not_found": "الدفعة غير موجودة.",
     "invoice_state": "لا يمكن تنفيذ هذا على الفاتورة في حالتها الحالية.",
     "invoice_has_payments": "لا يمكن إلغاء فاتورة عليها دفعات: ألغي الدفعات أولاً.",
-    "payment_exceeds_total": "المبلغ أكبر من المتبقي على الفاتورة."
+    "payment_exceeds_total": "المبلغ أكبر من المتبقي على الفاتورة.",
+    "task_not_found": "المهمة غير موجودة.",
+    "task_recurrence_not_found": "قاعدة التكرار غير موجودة."
   },
   "theme": {
     "toLight": "الوضع الفاتح",
@@ -235,14 +237,17 @@
       "suspendedClients": "عملاء موقوفون: {{count}}",
       "withoutPlan": "عملاء نشطون بلا خطة أتعاب هذا الشهر: {{count}}",
       "drafts": "مسودات فواتير بانتظار مراجعتك: {{count}}",
-      "overdue": "فواتير متأخرة السداد: {{count}}"
+      "overdue": "فواتير متأخرة السداد: {{count}}",
+      "overdueTasks": "{{count}} مهمة متأخرة"
     },
     "thisMonth": "هذا الشهر، لكل العملاء",
     "feesNote": "هذا الشهر، قيد الحساب",
     "withoutPlan": "عملاء نشطون بلا خطة: {{count}}",
     "activeCampaignsNote": "لكل العملاء",
     "dueInvoicesNote": "مُصدرة ولم تُدفع بالكامل",
-    "overdueInvoices": "متأخرة: {{count}}"
+    "overdueInvoices": "متأخرة: {{count}}",
+    "openTasks": "المهام المفتوحة",
+    "openTasksNote": "{{inProgress}} قيد العمل · {{overdue}} متأخرة"
   },
   "campaigns": {
     "title": "الحملات",
@@ -558,5 +563,111 @@
     "overdue": "فواتير متأخرة",
     "invoicedVsCollected": "المفوتر مقابل المحصّل — {{currency}}",
     "emptyFinance": "لا توجد فواتير صادرة بعد."
+  },
+  "tasks": {
+    "title": "المهام",
+    "clientTitle": "مهامي مع الوكالة",
+    "clientHint": "المهام التي تشاركها الوكالة معك وحالتها.",
+    "clientEmpty": "لا توجد مهام مشتركة حالياً.",
+    "add": "مهمة جديدة",
+    "create": "إنشاء المهمة",
+    "closeForm": "إغلاق",
+    "view": "طريقة العرض",
+    "views": {
+      "list": "قائمة",
+      "board": "لوحة"
+    },
+    "filters": {
+      "open": "المفتوحة",
+      "all": "الكل",
+      "source": "المصدر"
+    },
+    "status": {
+      "TODO": "للتنفيذ",
+      "IN_PROGRESS": "قيد العمل",
+      "DONE": "منجزة",
+      "CANCELLED": "ملغاة"
+    },
+    "setStatus": {
+      "TODO": "إعادة إلى «للتنفيذ»",
+      "IN_PROGRESS": "بدء العمل",
+      "DONE": "تم الإنجاز",
+      "CANCELLED": "إلغاء المهمة"
+    },
+    "priority": {
+      "HIGH": "عالية",
+      "MEDIUM": "متوسطة",
+      "LOW": "منخفضة"
+    },
+    "source": {
+      "MANUAL": "يدوية",
+      "RECURRING": "متكررة",
+      "SYSTEM": "تلقائية من النظام"
+    },
+    "due": {
+      "overdue": "متأخرة",
+      "today": "اليوم",
+      "week": "خلال 7 أيام",
+      "none": "بلا تاريخ"
+    },
+    "fields": {
+      "title": "العنوان",
+      "description": "الوصف",
+      "priority": "الأولوية",
+      "dueOn": "تاريخ الاستحقاق",
+      "client": "العميل",
+      "campaign": "الحملة",
+      "visibleToClient": "ظاهرة للعميل"
+    },
+    "errors": {
+      "title": "العنوان مطلوب (200 حرف كحد أقصى).",
+      "clientId": "العميل غير موجود.",
+      "campaignId": "الحملة لا تتبع هذا العميل.",
+      "visibleToClient": "لا تُشارك إلا مهمة مرتبطة بعميل.",
+      "day": "اختاري يوماً صحيحاً لهذا التكرار.",
+      "endsOn": "تاريخ النهاية قبل البداية."
+    },
+    "noClient": "بلا عميل (مهمة عامة)",
+    "noCampaign": "بلا حملة",
+    "visibleHint": "يراها العميل في بوابته للقراءة فقط. التعليقات تبقى داخلية.",
+    "overdue": "متأخرة",
+    "overdueBanner": "لديك {{count}} مهمة متأخرة — اضغطي لعرضها.",
+    "shared": "ظاهرة للعميل",
+    "commentsCount": "{{count}} تعليق",
+    "empty": "لا توجد مهام مطابقة.",
+    "emptyColumn": "لا شيء هنا.",
+    "moveTo": "← {{status}}",
+    "searchPlaceholder": "ابحثي في العناوين",
+    "createdBy": "أنشأها",
+    "bySystem": "النظام",
+    "completedAt": "أُنجزت في",
+    "comments": "التعليقات الداخلية",
+    "commentsHint": "لا يراها العميل أبداً، ولا تُعدّل ولا تُحذف.",
+    "noComments": "لا توجد تعليقات بعد.",
+    "commentPlaceholder": "اكتبي ملاحظة داخلية…",
+    "addComment": "إضافة تعليق",
+    "dueOnDate": "الاستحقاق: {{date}}",
+    "recurring": {
+      "title": "المهام المتكررة",
+      "hint": "قواعد تنشئ مهمة كل أسبوع أو كل شهر. التعديل يسري على المرات القادمة فقط، والقاعدة تُوقف ولا تُحذف.",
+      "add": "قاعدة جديدة",
+      "create": "إنشاء القاعدة",
+      "frequency": "التكرار",
+      "WEEKLY": "أسبوعياً",
+      "MONTHLY": "شهرياً",
+      "day": "اليوم",
+      "dueAfterDays": "تستحق بعد (أيام)",
+      "startsOn": "تبدأ في",
+      "endsOn": "تنتهي في (اختياري)",
+      "empty": "لا توجد قواعد تكرار بعد.",
+      "paused": "موقوفة",
+      "pause": "إيقاف مؤقت",
+      "resume": "استئناف",
+      "everyWeek": "كل {{day}}",
+      "everyMonth": "يوم {{day}} من كل شهر",
+      "dueAfter": "تستحق بعد {{count}} يوم",
+      "from": "من {{date}}",
+      "until": "حتى {{date}}"
+    }
   }
 }

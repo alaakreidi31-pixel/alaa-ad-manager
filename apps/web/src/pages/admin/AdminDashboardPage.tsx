@@ -8,6 +8,7 @@ import { SystemStatus } from '../../components/SystemStatus';
 import { ui } from '../../components/ui';
 import { getAdminDashboard, type AdminDashboard } from '../../lib/admin-api';
 import { ApiError } from '../../lib/api-client';
+import { listTasks, type TaskPage } from '../../lib/tasks-api';
 
 function greetingKey(hour: number): string {
   if (hour < 12) return 'dashboard.morning';
@@ -26,6 +27,23 @@ export function AdminDashboardPage() {
   const { state, api } = useAuth();
   const [data, setData] = useState<AdminDashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<TaskPage['counts'] | null>(null);
+
+  // Open and overdue tasks (phase 8). Also creates the due recurring and
+  // system tasks on the server.
+  useEffect(() => {
+    let active = true;
+    listTasks(api, { status: 'TODO,IN_PROGRESS', pageSize: 1 })
+      .then((page) => {
+        if (active) setTasks(page.counts);
+      })
+      .catch(() => {
+        if (active) setTasks(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [api]);
 
   useEffect(() => {
     let active = true;
@@ -68,6 +86,11 @@ export function AdminDashboardPage() {
           tone: 'danger',
           text: t('dashboard.attention.overdue', { count: data.invoices.overdue }),
         },
+        tasks !== null &&
+          tasks.overdue > 0 && {
+            tone: 'danger',
+            text: t('dashboard.attention.overdueTasks', { count: tasks.overdue }),
+          },
         data.clients.SUSPENDED > 0 && {
           tone: 'danger',
           text: t('dashboard.attention.suspendedClients', { count: data.clients.SUSPENDED }),
@@ -126,6 +149,20 @@ export function AdminDashboardPage() {
               note={t('dashboard.pendingPasswordNote')}
               icon="settings"
             />
+            {tasks && (
+              <Link to="/admin/tasks" className="min-w-0 rounded-2xl transition hover:opacity-90">
+                <StatCard
+                  label={t('dashboard.openTasks')}
+                  value={tasks.TODO + tasks.IN_PROGRESS}
+                  note={t('dashboard.openTasksNote', {
+                    overdue: tasks.overdue,
+                    inProgress: tasks.IN_PROGRESS,
+                  })}
+                  icon="tasks"
+                  tone="gold"
+                />
+              </Link>
+            )}
           </>
         ) : (
           !error && <p className="text-ink-400">{t('common.loading')}</p>

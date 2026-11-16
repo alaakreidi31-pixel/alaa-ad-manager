@@ -63,6 +63,7 @@ model User {
   tasksCreated       Task[]           @relation("TaskCreatedBy")
   recurrencesCreated TaskRecurrence[] @relation("TaskRecurrenceCreatedBy")
   taskComments       TaskComment[]
+  notifications      Notification[]
 
   @@index([clientId])
   @@map("users")
@@ -472,4 +473,22 @@ model TaskComment {
 
   @@index([taskId, createdAt])
   @@map("task_comments")
+}
+
+// In-app notifications (phase 9, ADR 0023). Migration
+// 20261116150000_create_notifications: only read_at can change, no delete.
+model Notification {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  kind      String
+  params    Json      @default("{}")
+  link      String?
+  dedupeKey String?   @map("dedupe_key")
+  readAt    DateTime? @map("read_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([userId, dedupeKey], map: "notifications_user_dedupe_key")
+  @@index([userId, createdAt(sort: Desc)], map: "notifications_user_created_at_idx")
+  @@map("notifications")
 }

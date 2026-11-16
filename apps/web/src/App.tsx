@@ -11,6 +11,9 @@ import { InvoiceDetailPage } from './pages/admin/InvoiceDetailPage';
 import { InvoicePrintPage } from './pages/admin/InvoicePrintPage';
 import { InvoicesListPage } from './pages/admin/InvoicesListPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
+import { TaskDetailPage } from './pages/admin/TaskDetailPage';
+import { TaskRecurrencesPage } from './pages/admin/TaskRecurrencesPage';
+import { TasksPage } from './pages/admin/TasksPage';
 import { ClientDetailPage } from './pages/admin/ClientDetailPage';
 import { ClientFormPage } from './pages/admin/ClientFormPage';
 import { ClientsListPage } from './pages/admin/ClientsListPage';
@@ -19,6 +22,7 @@ import { ClientCampaignsPage } from './pages/client/ClientCampaignsPage';
 import { ClientInvoicePage } from './pages/client/ClientInvoicePage';
 import { ClientInvoicesPage } from './pages/client/ClientInvoicesPage';
 import { ClientReportsPage } from './pages/client/ClientReportsPage';
+import { ClientTasksPage } from './pages/client/ClientTasksPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 
@@ -57,6 +61,9 @@ export function App() {
           <Route path="/admin/campaigns" element={admin(<CampaignsListPage />)} />
           <Route path="/admin/invoices" element={admin(<InvoicesListPage />)} />
           <Route path="/admin/reports" element={admin(<ReportsPage />)} />
+          <Route path="/admin/tasks" element={admin(<TasksPage />)} />
+          <Route path="/admin/tasks/recurring" element={admin(<TaskRecurrencesPage />)} />
+          <Route path="/admin/tasks/:id" element={admin(<TaskDetailPage />)} />
           <Route path="/admin/invoices/:id" element={admin(<InvoiceDetailPage />)} />
           <Route path="/admin/invoices/:id/print" element={admin(<InvoicePrintPage />)} />
           <Route path="/admin/clients/:id/campaigns/new" element={admin(<CampaignFormPage />)} />
@@ -76,6 +83,7 @@ export function App() {
           <Route path="/campaigns/:campaignId" element={client(<ClientCampaignPage />)} />
           <Route path="/invoices" element={client(<ClientInvoicesPage />)} />
           <Route path="/reports" element={client(<ClientReportsPage />)} />
+          <Route path="/tasks" element={client(<ClientTasksPage />)} />
           <Route path="/invoices/:id" element={client(<ClientInvoicePage />)} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
