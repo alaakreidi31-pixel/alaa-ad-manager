@@ -203,7 +203,8 @@
     "invoice_has_payments": "An invoice with payments cannot be voided: void the payments first.",
     "payment_exceeds_total": "The amount is more than what is left to pay.",
     "task_not_found": "Task not found.",
-    "task_recurrence_not_found": "Recurring rule not found."
+    "task_recurrence_not_found": "Recurring rule not found.",
+    "notification_not_found": "Notification not found."
   },
   "theme": {
     "toLight": "Light mode",
@@ -668,6 +669,33 @@
       "dueAfter": "due after {{count}} days",
       "from": "from {{date}}",
       "until": "until {{date}}"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bell": "Notifications, {{count}} unread",
+    "readAll": "Mark all as read",
+    "empty": "No notifications.",
+    "seeAll": "See all notifications",
+    "unread": "unread",
+    "all": "All",
+    "onlyUnread": "Unread ({{count}})",
+    "kinds": {
+      "invoice_issued": "New invoice {{number}}: {{total}} {{currency}}.",
+      "invoice_payment_recorded": "Payment of {{amount}} {{currency}} recorded on invoice {{number}}.",
+      "invoice_draft_ready": "{{title}}",
+      "invoice_overdue": "Invoice {{number}} is past its due date ({{dueOn}}).",
+      "task_shared": "New task from the agency: {{title}}.",
+      "task_status_changed": "Task “{{title}}” is now: {{status}}.",
+      "task_overdue": "Overdue task: {{title}}.",
+      "task_system": "New automatic task: {{title}}.",
+      "campaign_status_changed": "Campaign “{{name}}” is now: {{status}}.",
+      "campaign_import_done": "{{platform}} numbers imported for {{client}}: {{newDays}} new days, {{corrections}} corrections.",
+      "campaign_stale": "{{title}}",
+      "security_account_locked": "Account {{email}} locked for {{minutes}} minutes after failed sign-ins.",
+      "security_new_device": "Your account was signed in from a new device ({{device}}). If it was not you, change your password now.",
+      "unknown": "New notification.",
+      "invoice_overdue_admin": "{{title}}"
     }
   }
 }

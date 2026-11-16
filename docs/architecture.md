@@ -48,6 +48,7 @@
 | `/admin/clients/:id/campaigns/new` و`.../:campaignId/edit`             | إضافة حملة لعميل وتعديلها                                                                                                                                     | `apps/web/src/pages/admin/CampaignFormPage.tsx`                               |
 | `/admin/invoices` و`/admin/invoices/:id`                               | الفواتير: تجهيز المسودات تلقائياً، والمراجعة والإصدار، والدفعات، والإلغاء مع السبب                                                                             | `apps/web/src/pages/admin/InvoicesListPage.tsx` و`InvoiceDetailPage.tsx`      |
 | `/admin/invoices/:id/print` و`/invoices` و`/invoices/:id`              | الفاتورة كورقة للطباعة أو الحفظ PDF، وفواتير العميل في بوابته                                                                                                 | `apps/web/src/components/InvoicePaper.tsx`                                    |
+| `/notifications`                                                       | كل إشعارات الحساب، والجرس في أعلى كل صفحة (ADR 0023)                                                                                                          | `apps/web/src/pages/NotificationsPage.tsx`                                    |
 | `/admin/tasks` و`/admin/tasks/:id` و`/admin/tasks/recurring` و`/tasks` | المهام: قائمة ولوحة، والتعليقات الداخلية، والقواعد المتكررة، ومهام العميل المشتركة (ADR 0022)                                                                 | `apps/web/src/pages/admin/TasksPage.tsx`                                      |
 | `/admin/reports` و`/reports`                                           | التقارير: الأداء عبر الزمن، ومقارنة الحملات، ومالية الوكالة (للإدارة)، وتصدير CSV (ADR 0021)                                                                  | `apps/web/src/components/PerformanceReport.tsx` و`FinanceReport.tsx`          |
 | `/admin/clients/:id/campaigns/import`                                  | استيراد CSV: اختيار المنصة والملف، ثم المعاينة، ثم التأكيد                                                                                                    | `apps/web/src/pages/admin/CampaignImportPage.tsx`                             |
@@ -97,6 +98,10 @@
 | `POST /api/admin/clients/:id/users/:userId/suspend`                                                                      | إيقاف حساب واحد                                                                                                                      |
 | `POST /api/admin/clients/:id/users/:userId/activate`                                                                     | إعادة تفعيل حساب                                                                                                                     |
 
+## الإشعارات (`/api/notifications`)
+
+لكل حساب مسجّل (إدارة أو عميل)، على إشعاراته فقط (ADR 0023): `GET /api/notifications` و`GET /api/notifications/unread-count` و`POST /api/notifications/:id/read` و`POST /api/notifications/read-all`.
+
 ## بوابة العميل (`/api/client`)
 
 لحسابات `CLIENT_USER` فقط (`AccessTokenGuard` ثم `ClientUserGuard`). **لا يقبل أي مسار رقم عميل من الطلب**: العميل يُؤخذ من الجلسة دائماً.
@@ -138,6 +143,10 @@
 **الحماية من التخمين ([ADR 0012](decisions/0012-brute-force-protection.md)):** 5 كلمات مرور خاطئة متتالية تقفل الحساب 15 دقيقة (العمودان `failed_login_attempts` و`locked_until` في `users`)، و`login` و`refresh` محدودان بـ 10 طلبات في الدقيقة لكل IP. الرد في الحالتين 429.
 
 **التحقق بخطوتين ([ADR 0013](decisions/0013-two-factor-authentication.md)):** إذا كان الحساب يستخدم 2FA، يعيد `login` تذكرة مؤقتة (5 دقائق) بدل الجلسة، وتُفتح الجلسة بعد `2fa/verify`. حساب `SUPER_ADMIN` دون 2FA يُرفض (403). خوارزمية TOTP في `apps/api/src/auth/totp.ts`، والتشفير AES-256-GCM في `secret-box.ts`، والتفعيل بالأمر `pnpm admin:setup-2fa`.
+
+### جدول `notifications` (migrations `20261116150000_create_notifications` و`20261116160000_notifications_follow_user`)
+
+القواعد في ADR 0023: رابط داخلي فقط، ومرة واحدة لكل مفتاح، والقراءة فقط، ولا حذف.
 
 ### جداول `tasks` و`task_recurrences` و`task_comments` (migration `20261116120000_create_tasks`)
 

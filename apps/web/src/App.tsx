@@ -24,6 +24,7 @@ import { ClientInvoicesPage } from './pages/client/ClientInvoicesPage';
 import { ClientReportsPage } from './pages/client/ClientReportsPage';
 import { ClientTasksPage } from './pages/client/ClientTasksPage';
 import { HomePage } from './pages/HomePage';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { LoginPage } from './pages/LoginPage';
 
 // Administration pages: SUPER_ADMIN only.
@@ -85,6 +86,14 @@ export function App() {
           <Route path="/reports" element={client(<ClientReportsPage />)} />
           <Route path="/tasks" element={client(<ClientTasksPage />)} />
           <Route path="/invoices/:id" element={client(<ClientInvoicePage />)} />
+          <Route
+            path="/notifications"
+            element={
+              <RequireAuth>
+                <NotificationsPage />
+              </RequireAuth>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell>

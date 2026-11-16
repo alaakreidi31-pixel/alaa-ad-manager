@@ -4,6 +4,7 @@ import { NavLink, useLocation } from 'react-router';
 import { useAuth } from '../auth/auth-context';
 import { Icon, type IconName } from './icons';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { NotificationBell } from './NotificationBell';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { Logo } from './Logo';
 
@@ -170,6 +171,7 @@ function AdminShell({ children }: { children: ReactNode }) {
             <Icon name="menu" />
           </button>
           <div className="ms-auto flex items-center gap-3">
+            <NotificationBell />
             <ThemeSwitcher />
             <LanguageSwitcher />
           </div>
@@ -222,6 +224,7 @@ function ClientShell({ children }: { children: ReactNode }) {
             )}
           </nav>
           <div className="ms-auto flex items-center gap-3">
+            <NotificationBell />
             <ThemeSwitcher />
             <LanguageSwitcher />
             <span className="hidden text-sm text-ink-200 sm:inline">{state.user.fullName}</span>

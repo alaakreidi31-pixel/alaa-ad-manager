@@ -203,7 +203,8 @@
     "invoice_has_payments": "لا يمكن إلغاء فاتورة عليها دفعات: ألغي الدفعات أولاً.",
     "payment_exceeds_total": "المبلغ أكبر من المتبقي على الفاتورة.",
     "task_not_found": "المهمة غير موجودة.",
-    "task_recurrence_not_found": "قاعدة التكرار غير موجودة."
+    "task_recurrence_not_found": "قاعدة التكرار غير موجودة.",
+    "notification_not_found": "الإشعار غير موجود."
   },
   "theme": {
     "toLight": "الوضع الفاتح",
@@ -668,6 +669,33 @@
       "dueAfter": "تستحق بعد {{count}} يوم",
       "from": "من {{date}}",
       "until": "حتى {{date}}"
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "bell": "الإشعارات، {{count}} غير مقروءة",
+    "readAll": "تعليم الكل كمقروء",
+    "empty": "لا توجد إشعارات.",
+    "seeAll": "عرض كل الإشعارات",
+    "unread": "غير مقروء",
+    "all": "الكل",
+    "onlyUnread": "غير المقروءة ({{count}})",
+    "kinds": {
+      "invoice_issued": "صدرت فاتورة جديدة {{number}} بقيمة {{total}} {{currency}}.",
+      "invoice_payment_recorded": "سُجّلت دفعة {{amount}} {{currency}} على الفاتورة {{number}}.",
+      "invoice_draft_ready": "{{title}}",
+      "invoice_overdue": "الفاتورة {{number}} تجاوزت موعد استحقاقها ({{dueOn}}).",
+      "task_shared": "مهمة جديدة من الوكالة: {{title}}.",
+      "task_status_changed": "تغيّرت حالة المهمة «{{title}}» إلى: {{status}}.",
+      "task_overdue": "مهمة متأخرة: {{title}}.",
+      "task_system": "مهمة تلقائية جديدة: {{title}}.",
+      "campaign_status_changed": "تغيّرت حالة الحملة «{{name}}» إلى: {{status}}.",
+      "campaign_import_done": "تم استيراد أرقام {{platform}} للعميل {{client}}: {{newDays}} يوم جديد و{{corrections}} تصحيح.",
+      "campaign_stale": "{{title}}",
+      "security_account_locked": "قُفل حساب {{email}} لمدة {{minutes}} دقيقة بعد محاولات دخول خاطئة.",
+      "security_new_device": "تم الدخول إلى حسابك من جهاز جديد ({{device}}). إن لم تكن أنت، غيّر كلمة المرور فوراً.",
+      "unknown": "إشعار جديد.",
+      "invoice_overdue_admin": "{{title}}"
     }
   }
 }
