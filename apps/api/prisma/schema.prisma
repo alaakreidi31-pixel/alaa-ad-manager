@@ -60,6 +60,9 @@ model User {
   mustChangePassword Boolean  @default(false) @map("must_change_password")
   sessions      Session[]
   recoveryCodes RecoveryCode[]
+  tasksCreated       Task[]           @relation("TaskCreatedBy")
+  recurrencesCreated TaskRecurrence[] @relation("TaskRecurrenceCreatedBy")
+  taskComments       TaskComment[]
 
   @@index([clientId])
   @@map("users")
@@ -162,6 +165,8 @@ model Client {
   feePlans         FeePlan[]
   // Fee invoices of this client (ADR 0020)
   invoices         Invoice[]
+  tasks            Task[]
+  taskRecurrences  TaskRecurrence[]
 
   @@index([status, createdAt])
   @@map("clients")
@@ -210,6 +215,8 @@ model Campaign {
   updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
   // One row per day (step 4.2)
   metrics     CampaignDailyMetric[]
+  tasks       Task[]
+  taskRecurrences TaskRecurrence[]
 
   @@index([clientId, status])
   @@map("campaigns")
@@ -360,4 +367,109 @@ model Payment {
 
   @@index([invoiceId])
   @@map("payments")
+}
+
+// Tasks (phase 8, ADR 0022). Migration 20261116120000_create_tasks: rules,
+// triggers and the "no delete" grants are in the SQL.
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+
+  @@map("task_status")
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@map("task_priority")
+}
+
+enum TaskSource {
+  MANUAL
+  RECURRING
+  SYSTEM
+
+  @@map("task_source")
+}
+
+enum TaskFrequency {
+  WEEKLY
+  MONTHLY
+
+  @@map("task_frequency")
+}
+
+model TaskRecurrence {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String
+  description     String?
+  priority        TaskPriority  @default(MEDIUM)
+  clientId        String?       @map("client_id") @db.Uuid
+  client          Client?       @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaignId      String?       @map("campaign_id") @db.Uuid
+  campaign        Campaign?     @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  visibleToClient Boolean       @default(false) @map("visible_to_client")
+  frequency       TaskFrequency
+  dayOfWeek       Int?          @map("day_of_week") @db.SmallInt
+  dayOfMonth      Int?          @map("day_of_month") @db.SmallInt
+  dueAfterDays    Int           @default(0) @map("due_after_days") @db.SmallInt
+  startsOn        DateTime      @map("starts_on") @db.Date
+  endsOn          DateTime?     @map("ends_on") @db.Date
+  pausedAt        DateTime?     @map("paused_at") @db.Timestamptz(3)
+  createdById     String        @map("created_by") @db.Uuid
+  createdBy       User          @relation("TaskRecurrenceCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tasks           Task[]
+
+  @@index([clientId])
+  @@map("task_recurrences")
+}
+
+model Task {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String
+  description     String?
+  status          TaskStatus      @default(TODO)
+  priority        TaskPriority    @default(MEDIUM)
+  dueOn           DateTime?       @map("due_on") @db.Date
+  clientId        String?         @map("client_id") @db.Uuid
+  client          Client?         @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  campaignId      String?         @map("campaign_id") @db.Uuid
+  campaign        Campaign?       @relation(fields: [campaignId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  visibleToClient Boolean         @default(false) @map("visible_to_client")
+  source          TaskSource      @default(MANUAL)
+  recurrenceId    String?         @map("recurrence_id") @db.Uuid
+  recurrence      TaskRecurrence? @relation(fields: [recurrenceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  occurrenceOn    DateTime?       @map("occurrence_on") @db.Date
+  systemKey       String?         @unique(map: "tasks_system_key_key") @map("system_key")
+  completedAt     DateTime?       @map("completed_at") @db.Timestamptz(3)
+  createdById     String?         @map("created_by") @db.Uuid
+  createdBy       User?           @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  comments        TaskComment[]
+
+  @@unique([recurrenceId, occurrenceOn], map: "tasks_recurrence_occurrence_key")
+  @@index([status, dueOn])
+  @@index([clientId, status])
+  @@index([campaignId])
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  authorId  String   @map("author_id") @db.Uuid
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([taskId, createdAt])
+  @@map("task_comments")
 }
